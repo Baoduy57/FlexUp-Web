@@ -1,211 +1,189 @@
 "use client";
 
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { Sidebar } from "@/components/layout/sidebar";
-import { meals } from "@/data/meals";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { getAllMeals } from "@/data/meal-plans";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, Users, Star, Flame } from "lucide-react";
-import { motion } from "framer-motion";
-import { Progress } from "@/components/ui/progress";
+import { Clock, Users, Star, Flame, ChefHat } from "lucide-react";
 
 interface Props {
   params: { id: string };
 }
 
 export default function MealDetailPage({ params }: Props) {
-  const meal = meals.find((m) => m.id === params.id);
+  // Get all meals and find the one with matching ID
+  const allMeals = getAllMeals();
+  const meal = allMeals.find((m: any) => m.id === params.id);
+  
   if (!meal) return notFound();
 
+  const difficultyColors: Record<string, string> = {
+    easy: "bg-green-500",
+    medium: "bg-yellow-500",
+    hard: "bg-red-500"
+  };
+
+  const difficultyLabels: Record<string, string> = {
+    easy: "Dễ",
+    medium: "Trung bình",
+    hard: "Khó"
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
-      <main className="p-4 md:p-2">
-        <div className="max-w-6xl mx-auto">
-          {/* Hero */}
-          <div className="relative h-96 md:h-[480px] overflow-hidden rounded-b-3xl shadow-lg">
-            <img
-              src={meal.image}
-              alt={meal.name}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
-            <div className="absolute bottom-8 left-8 text-white space-y-2">
-              <h1 className="text-5xl font-bold drop-shadow-lg">{meal.name}</h1>
-              <div className="flex items-center gap-4 text-sm">
-                <span className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  {meal.rating}
-                </span>
-                <Badge className="bg-white/20 backdrop-blur text-white border border-white/30">
-                  {meal.difficulty}
-                </Badge>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6 md:p-10 space-y-10">
-            {/* Back */}
-            <Link href="/nutrition">
-              <Button variant="ghost" size="lg" className="mb-4">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Quay lại
-              </Button>
-            </Link>
-
-            {/* Info Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {[
-                {
-                  icon: Clock,
-                  label: "Thời gian",
-                  value: meal.prepTime,
-                  color: "from-green-400 to-emerald-500",
-                },
-                {
-                  icon: Users,
-                  label: "Phần ăn",
-                  value: meal.servings,
-                  color: "from-blue-400 to-indigo-500",
-                },
-                {
-                  icon: Flame,
-                  label: "Calories",
-                  value: meal.calories,
-                  color: "from-red-400 to-orange-500",
-                },
-              ].map((info, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 * i }}
-                >
-                  <Card className="rounded-2xl backdrop-blur-md bg-white/70 border border-white/20 shadow-lg hover:shadow-xl transition">
-                    <CardContent className="flex flex-col items-center py-6">
-                      <div
-                        className={`p-3 rounded-full bg-gradient-to-br ${info.color} text-white shadow`}
-                      >
-                        <info.icon className="h-6 w-6" />
-                      </div>
-                      <p className="mt-3 font-semibold text-lg">{info.value}</p>
-                      <span className="text-xs text-muted-foreground">
-                        {info.label}
-                      </span>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-
-              {/* Macros */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <Card className="rounded-2xl backdrop-blur-md bg-white/70 border border-white/20 shadow-lg hover:shadow-xl transition">
-                  <CardContent className="space-y-4 py-6">
-                    {[
-                      {
-                        label: "Protein",
-                        value: meal.protein,
-                        color: "from-green-400 to-emerald-500",
-                      },
-                      {
-                        label: "Carbs",
-                        value: meal.carbs,
-                        color: "from-blue-400 to-indigo-500",
-                      },
-                      {
-                        label: "Fat",
-                        value: meal.fat,
-                        color: "from-purple-400 to-pink-500",
-                      },
-                    ].map((m, idx) => (
-                      <div key={idx}>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span>{m.label}</span>
-                          <span className="font-semibold">{m.value}g</span>
-                        </div>
-                        <Progress value={m.value}>
-                          <div
-                            className={`h-full rounded-full bg-gradient-to-r ${m.color} animate-gradient-x`}
-                            style={{ width: `${Math.min(m.value, 100)}%` }}
-                          />
-                        </Progress>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </div>
-
-            {/* Ingredients */}
-            <Card className="rounded-2xl backdrop-blur-md bg-white/70 border border-white/20 shadow-lg">
-              <CardHeader>
-                <CardTitle>Nguyên liệu</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {meal.ingredients.map((ing, i) => (
-                    <motion.li
-                      key={i}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="flex items-center gap-2 text-muted-foreground"
-                    >
-                      <span className="w-2 h-2 bg-primary rounded-full" />
-                      {ing}
-                    </motion.li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-
-            {/* Steps */}
-            <Card className="rounded-2xl backdrop-blur-md bg-white/70 border border-white/20 shadow-lg">
-              <CardHeader>
-                <CardTitle>Cách làm</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ol className="space-y-5">
-                  {meal.steps.map((step, i) => (
-                    <motion.li
-                      key={i}
-                      initial={{ opacity: 0, y: 15 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.08 }}
-                      className="flex gap-3 items-start text-muted-foreground"
-                    >
-                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-cyan-500 text-white shadow hover:scale-105 transition">
-                        {i + 1}
-                      </span>
-                      <p>{step}</p>
-                    </motion.li>
-                  ))}
-                </ol>
-              </CardContent>
-            </Card>
-
-            {/* CTA */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.5 }}
-              className="flex justify-center"
-            >
-              <Button
-                size="lg"
-                className="px-10 bg-gradient-to-r from-blue-400 to-cyan-500 text-white shadow-lg hover:shadow-xl hover:scale-105 transition"
-              >
-                + Thêm vào kế hoạch ăn uống
-              </Button>
-            </motion.div>
-          </div>
+    <div className="container max-w-4xl mx-auto py-8 px-4">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-2">
+          <ChefHat className="h-6 w-6 text-primary" />
+          <h1 className="text-3xl font-bold">{meal.name}</h1>
         </div>
-      </main>
+        <p className="text-muted-foreground text-lg">{meal.description}</p>
+      </div>
+
+      {/* Main Image */}
+      <Card className="mb-6 overflow-hidden">
+        <div className="h-80 overflow-hidden">
+          <img 
+            src={meal.image} 
+            alt={meal.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      </Card>
+
+      {/* Quick Info */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <Clock className="h-6 w-6 mx-auto mb-2 text-primary" />
+            <div className="text-2xl font-bold">{meal.prepTime}</div>
+            <p className="text-xs text-muted-foreground">phút</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
+            <div className="text-2xl font-bold">{meal.servings}</div>
+            <p className="text-xs text-muted-foreground">người</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <Star className="h-6 w-6 mx-auto mb-2 text-yellow-500 fill-yellow-500" />
+            <div className="text-2xl font-bold">{meal.rating}</div>
+            <p className="text-xs text-muted-foreground">đánh giá</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <div className="mx-auto mb-2">
+              <Badge className={difficultyColors[meal.difficulty]}>
+                {difficultyLabels[meal.difficulty]}
+              </Badge>
+            </div>
+            <div className="text-sm font-medium">Độ khó</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Nutrition Info */}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Flame className="h-5 w-5 text-orange-500" />
+            <CardTitle>Thông tin dinh dưỡng</CardTitle>
+          </div>
+          <CardDescription>Giá trị dinh dưỡng trên {meal.servings} khẩu phần</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-4 rounded-lg bg-orange-50">
+              <div className="text-3xl font-bold text-orange-600">{meal.calories}</div>
+              <p className="text-sm text-muted-foreground mt-1">Calories (kcal)</p>
+            </div>
+            <div className="text-center p-4 rounded-lg bg-blue-50">
+              <div className="text-3xl font-bold text-blue-600">{meal.protein}g</div>
+              <p className="text-sm text-muted-foreground mt-1">Protein</p>
+            </div>
+            <div className="text-center p-4 rounded-lg bg-green-50">
+              <div className="text-3xl font-bold text-green-600">{meal.carbs}g</div>
+              <p className="text-sm text-muted-foreground mt-1">Carbs</p>
+            </div>
+            <div className="text-center p-4 rounded-lg bg-yellow-50">
+              <div className="text-3xl font-bold text-yellow-600">{meal.fat}g</div>
+              <p className="text-sm text-muted-foreground mt-1">Fat</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Ingredients */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Nguyên liệu</CardTitle>
+            <CardDescription>Chuẩn bị đầy đủ trước khi nấu</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {meal.ingredients.map((ingredient: string, index: number) => (
+                <li key={index} className="flex items-start gap-2">
+                  <span className="text-primary mt-1">•</span>
+                  <span>{ingredient}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* Instructions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Cách làm</CardTitle>
+            <CardDescription>Làm theo các bước dưới đây</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ol className="space-y-4">
+              {meal.instructions.map((instruction: string, index: number) => (
+                <li key={index} className="flex gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
+                    {index + 1}
+                  </div>
+                  <div className="flex-1 pt-1">
+                    <p>{instruction}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tips Section */}
+      <Card className="mt-6 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+        <CardHeader>
+          <CardTitle className="text-lg">💡 Mẹo nấu ăn</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-2 text-sm">
+            <li className="flex items-start gap-2">
+              <span className="text-primary mt-1">•</span>
+              <span>Chuẩn bị tất cả nguyên liệu trước khi bắt đầu nấu</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-primary mt-1">•</span>
+              <span>Đọc kỹ toàn bộ công thức trước khi thực hiện</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-primary mt-1">•</span>
+              <span>Có thể điều chỉnh gia vị theo khẩu vị cá nhân</span>
+            </li>
+          </ul>
+        </CardContent>
+      </Card>
     </div>
   );
 }

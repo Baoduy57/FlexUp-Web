@@ -13,6 +13,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Search,
   Play,
   Clock,
@@ -20,6 +27,7 @@ import {
   ThumbsUp,
   Share2,
   Bookmark,
+  X,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -34,6 +42,7 @@ interface Video {
   likes: number;
   publishDate: string;
   thumbnail: string;
+  videoUrl: string;
   difficulty: "Dễ" | "Trung bình" | "Khó";
   isBookmarked: boolean;
   tags: string[];
@@ -56,6 +65,7 @@ const videos: Video[] = [
     likes: 892,
     publishDate: "2024-01-15",
     thumbnail: "/cardio-fat-burning-workout.jpg",
+    videoUrl: "https://www.youtube.com/embed/ml6cT4AZdqI",
     difficulty: "Trung bình",
     isBookmarked: false,
     tags: ["hiit", "cardio", "giảm cân", "toàn thân"],
@@ -76,6 +86,7 @@ const videos: Video[] = [
     likes: 654,
     publishDate: "2024-01-12",
     thumbnail: "/fitness-exercise-demonstration.jpg",
+    videoUrl: "https://www.youtube.com/embed/v7AYKMP6rOE",
     difficulty: "Dễ",
     isBookmarked: true,
     tags: ["yoga", "buổi sáng", "thư giãn", "linh hoạt"],
@@ -96,6 +107,7 @@ const videos: Video[] = [
     likes: 1205,
     publishDate: "2024-01-10",
     thumbnail: "/chest-and-shoulder-workout.jpg",
+    videoUrl: "https://www.youtube.com/embed/GBcN3Ydz8RM",
     difficulty: "Trung bình",
     isBookmarked: false,
     tags: ["ngực", "vai", "tăng cơ", "kỹ thuật"],
@@ -116,6 +128,7 @@ const videos: Video[] = [
     likes: 423,
     publishDate: "2024-01-08",
     thumbnail: "/fitness-exercise-demonstration.jpg",
+    videoUrl: "https://www.youtube.com/embed/g_tea8ZNk5A",
     difficulty: "Dễ",
     isBookmarked: true,
     tags: ["stretching", "phục hồi", "linh hoạt", "thư giãn"],
@@ -136,6 +149,7 @@ const videos: Video[] = [
     likes: 1456,
     publishDate: "2024-01-05",
     thumbnail: "/chest-and-shoulder-workout.jpg",
+    videoUrl: "https://www.youtube.com/embed/lsSC0c93zV8",
     difficulty: "Khó",
     isBookmarked: false,
     tags: ["squat", "deadlift", "kỹ thuật", "nâng cao"],
@@ -149,6 +163,8 @@ export function VideoLibrary() {
   const [selectedCategory, setSelectedCategory] = useState("Tất cả");
   const [selectedDifficulty, setSelectedDifficulty] = useState("Tất cả");
   const [videoList, setVideoList] = useState(videos);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
 
   const filteredVideos = videoList.filter((video) => {
     const matchesSearch =
@@ -280,7 +296,13 @@ export function VideoLibrary() {
             viewport={{ once: true }}
           >
             <Card className="overflow-hidden hover:shadow-xl transition-shadow duration-300">
-              <div className="aspect-video relative overflow-hidden group cursor-pointer rounded-lg">
+              <div 
+                className="aspect-video relative overflow-hidden group cursor-pointer rounded-lg"
+                onClick={() => {
+                  setSelectedVideo(video);
+                  setIsVideoModalOpen(true);
+                }}
+              >
                 <img
                   src={video.thumbnail || "/placeholder.svg"}
                   alt={video.title}
@@ -397,7 +419,10 @@ export function VideoLibrary() {
                       Chia sẻ
                     </Button>
                   </div>
-                  <Button size="sm">
+                  <Button size="sm" onClick={() => {
+                    setSelectedVideo(video);
+                    setIsVideoModalOpen(true);
+                  }}>
                     <Play className="h-4 w-4 mr-1" />
                     Xem
                   </Button>
@@ -419,6 +444,80 @@ export function VideoLibrary() {
           </CardContent>
         </Card>
       )}
+
+      {/* Video Player Modal */}
+      <Dialog open={isVideoModalOpen} onOpenChange={setIsVideoModalOpen}>
+        <DialogContent className="max-w-4xl p-0">
+          <DialogHeader className="p-6 pb-0">
+            <div className="flex items-start justify-between">
+              <div className="flex-1 pr-8">
+                <DialogTitle className="text-2xl mb-2">
+                  {selectedVideo?.title}
+                </DialogTitle>
+                <DialogDescription className="text-base">
+                  {selectedVideo?.description}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          
+          {selectedVideo && (
+            <div className="p-6 pt-4 space-y-4">
+              {/* Video Player */}
+              <div className="aspect-video w-full bg-black rounded-lg overflow-hidden">
+                <iframe
+                  src={selectedVideo.videoUrl}
+                  title={selectedVideo.title}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+
+              {/* Video Info */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Avatar>
+                    <AvatarImage src={selectedVideo.instructor.avatar} />
+                    <AvatarFallback>
+                      {selectedVideo.instructor.name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold">{selectedVideo.instructor.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedVideo.instructor.credentials}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Eye className="h-4 w-4" />
+                    {selectedVideo.views.toLocaleString()} lượt xem
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <ThumbsUp className="h-4 w-4" />
+                    {selectedVideo.likes.toLocaleString()}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    {selectedVideo.duration}
+                  </div>
+                </div>
+
+                <div className="flex gap-2 flex-wrap">
+                  {selectedVideo.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -15,7 +15,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
 
@@ -25,7 +25,6 @@ export function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [formData, setFormData] = useState({
-    name: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -61,7 +60,7 @@ export function RegisterForm() {
       handleRedirectAfterRegister();
       toast({
         title: "Đăng ký thành công!",
-        description: "Bắt đầu hành trình fitness ngay.",
+        description: "Vui lòng đăng nhập để tiếp tục.",
       });
     } catch (error) {
       toast({
@@ -148,25 +147,6 @@ export function RegisterForm() {
 
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-5">
-            {/* Name */}
-            <div>
-              <Label htmlFor="name">Họ và tên</Label>
-              <div className="relative mt-2">
-                <User className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Nguyễn Văn A"
-                  className="pl-10 rounded-xl focus-visible:ring-2 focus-visible:ring-blue-500 transition"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                />
-              </div>
-            </div>
-
             {/* Email */}
             <div>
               <Label htmlFor="email">Email</Label>

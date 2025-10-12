@@ -1,98 +1,116 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, RotateCcw, SkipForward } from "lucide-react";
 
 interface WorkoutTimerProps {
   exerciseName: string;
-  duration: number; // seconds
-  restDuration: number; // seconds
+  completed?: boolean;
+  durationSeconds?: number;
+  disabled?: boolean;
   onComplete?: () => void;
+  onSkip?: () => void;
+  onReset?: () => void;
 }
 
 export function WorkoutTimer({
   exerciseName,
-  duration,
-  restDuration,
+  completed = false,
+  durationSeconds = 60,
+  disabled = false,
   onComplete,
+  onSkip,
+  onReset,
 }: WorkoutTimerProps) {
-  const [timeLeft, setTimeLeft] = useState(duration);
+  const initialDuration = Math.max(durationSeconds, 1);
+  const [timeLeft, setTimeLeft] = useState(initialDuration);
   const [isRunning, setIsRunning] = useState(false);
-  const [currentPhase, setCurrentPhase] = useState<"exercise" | "rest">(
-    "exercise"
-  );
+
+  // Reset timer whenever exercise changes or duration is updated
+  useEffect(() => {
+    setTimeLeft(initialDuration);
+    setIsRunning(false);
+  }, [initialDuration, exerciseName]);
+
+  // Stop timer if exercise is marked as completed externally
+  useEffect(() => {
+    if (completed) {
+      setIsRunning(false);
+      setTimeLeft(0);
+    }
+  }, [completed]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isRunning && timeLeft > 0) {
-      interval = setInterval(() => setTimeLeft((t) => t - 1), 1000);
-    } else if (timeLeft === 0) {
-      if (currentPhase === "exercise" && restDuration > 0) {
-        setCurrentPhase("rest");
-        setTimeLeft(restDuration);
-      } else {
-        setIsRunning(false);
-        onComplete?.();
-      }
+    if (completed || disabled || !isRunning) {
+      return;
     }
-    return () => clearInterval(interval);
-  }, [isRunning, timeLeft, currentPhase, restDuration, onComplete]);
 
-  const formatTime = (s: number) =>
-    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(
-      2,
-      "0"
-    )}`;
-
-  const totalDuration = currentPhase === "exercise" ? duration : restDuration;
-  const progress = ((totalDuration - timeLeft) / totalDuration) * 100;
-
-  const handleStart = () => setIsRunning(true);
-  const handlePause = () => setIsRunning(false);
-  const handleReset = () => {
-    setIsRunning(false);
-    setTimeLeft(currentPhase === "exercise" ? duration : restDuration);
-  };
-  const handleSkip = () => {
-    if (currentPhase === "exercise" && restDuration > 0) {
-      setCurrentPhase("rest");
-      setTimeLeft(restDuration);
-    } else {
+    if (timeLeft <= 0) {
+      setIsRunning(false);
       onComplete?.();
+      return;
     }
+
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => Math.max(prev - 1, 0));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isRunning, timeLeft, completed, onComplete]);
+
+  const formatTime = (seconds: number) => {
+    const safeSeconds = Math.max(seconds, 0);
+    return `${String(Math.floor(safeSeconds / 60)).padStart(2, "0")}:${String(
+      safeSeconds % 60
+    ).padStart(2, "0")}`;
+  };
+
+  const progress = completed
+    ? 100
+    : ((initialDuration - timeLeft) / initialDuration) * 100;
+
+  const handleStart = () => {
+    if (completed || disabled) return;
+    if (timeLeft <= 0) {
+      setTimeLeft(initialDuration);
+    }
+    setIsRunning(true);
+  };
+
+  const handlePause = () => setIsRunning(false);
+
+  const handleReset = () => {
+    if (completed || disabled) return;
+    setIsRunning(false);
+    setTimeLeft(initialDuration);
+    onReset?.();
+  };
+
+  const handleSkip = () => {
+    if (completed || disabled) return;
+    setIsRunning(false);
+    setTimeLeft(0);
+    onSkip?.();
   };
 
   return (
     <motion.div
-      className="w-full max-w-md mx-auto bg-card rounded-2xl shadow-lg p-6 space-y-2"
+      className="w-full max-w-md mx-auto bg-card rounded-2xl shadow-lg p-6 space-y-4"
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      {/* Title */}
-      <div className="text-center">
-        <AnimatePresence mode="wait">
-          <motion.h2
-            key={currentPhase}
-            className={`text-2xl font-bold ${
-              currentPhase === "exercise" ? "text-blue-500" : "text-orange-500"
-            }`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-          >
-            {currentPhase === "exercise" ? exerciseName : "Nghỉ ngơi"}
-          </motion.h2>
-        </AnimatePresence>
+      <div className="text-center space-y-1">
+        <h2 className="text-2xl font-bold text-blue-500">{exerciseName}</h2>
         <p className="text-muted-foreground">
-          {currentPhase === "exercise" ? "Đang tập luyện..." : "Thời gian nghỉ"}
+          {completed
+            ? "Đã hoàn thành bài tập"
+            : `Đếm ngược ${initialDuration} giây`}
         </p>
       </div>
 
-      {/* Timer Circle */}
       <div className="flex justify-center items-center">
         <motion.div
           className="relative w-48 h-48 flex items-center justify-center"
@@ -113,7 +131,7 @@ export function WorkoutTimer({
               cx="50%"
               cy="50%"
               r="90"
-              stroke={currentPhase === "exercise" ? "#224bc5" : "#f97316"}
+              stroke="#224bc5"
               strokeWidth="12"
               strokeLinecap="round"
               fill="transparent"
@@ -135,25 +153,44 @@ export function WorkoutTimer({
         </motion.div>
       </div>
 
-      {/* Controls */}
       <div className="flex justify-center gap-3">
-        {!isRunning ? (
+        {completed ? (
+          <Button size="lg" variant="secondary" disabled>
+            Đã hoàn thành
+          </Button>
+        ) : !isRunning ? (
           <Button
             onClick={handleStart}
             size="lg"
             className="bg-blue-500 hover:bg-blue-600"
+            disabled={disabled}
           >
             <Play className="mr-2 h-5 w-5" /> Bắt đầu
           </Button>
         ) : (
-          <Button onClick={handlePause} size="lg" variant="secondary">
+          <Button
+            onClick={handlePause}
+            size="lg"
+            variant="secondary"
+            disabled={disabled}
+          >
             <Pause className="mr-2 h-5 w-5" /> Tạm dừng
           </Button>
         )}
-        <Button onClick={handleReset} size="lg" variant="outline">
+        <Button
+          onClick={handleReset}
+          size="lg"
+          variant="outline"
+          disabled={completed || disabled}
+        >
           <RotateCcw className="mr-2 h-5 w-5" /> Đặt lại
         </Button>
-        <Button onClick={handleSkip} size="lg" variant="outline">
+        <Button
+          onClick={handleSkip}
+          size="lg"
+          variant="outline"
+          disabled={completed || disabled}
+        >
           <SkipForward className="mr-2 h-5 w-5" /> Bỏ qua
         </Button>
       </div>

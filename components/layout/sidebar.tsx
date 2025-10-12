@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useAuth } from "@/lib/auth-context";
 
 const navigation = [
   { name: "Trang chủ", href: "/dashboard", icon: Home },
@@ -32,11 +33,57 @@ const navigation = [
   { name: "Cài đặt", href: "/settings", icon: Settings },
 ];
 
+const trainingGoalLabels: Record<string, string> = {
+  "muscle-gain": "Tăng cơ",
+  "fat-loss": "Giảm mỡ",
+  maintain: "Giữ dáng",
+  endurance: "Tăng sức bền",
+};
+
 export function Sidebar() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false); // mobile
   const [collapsed, setCollapsed] = useState(false); // desktop
   const pathname = usePathname();
+  const { user, refreshProfile } = useAuth();
+  const hasRequestedProfile = useRef(false);
+
+  useEffect(() => {
+    if (!hasRequestedProfile.current) {
+      hasRequestedProfile.current = true;
+      void refreshProfile();
+    }
+  }, [refreshProfile]);
+
+  const displayName = useMemo(() => {
+    const first = user?.firstName ?? "";
+    const last = user?.lastName ?? "";
+    const combined = `${first} ${last}`.trim();
+    if (combined) return combined;
+    if (user?.email) return user.email.split("@")[0];
+    return "Người dùng";
+  }, [user?.email, user?.firstName, user?.lastName]);
+
+  const initials = useMemo(() => {
+    const firstInitial = user?.firstName?.[0] ?? "";
+    const lastInitial = user?.lastName?.[0] ?? "";
+    const combined = `${firstInitial}${lastInitial}`.toUpperCase().trim();
+    if (combined) return combined;
+    if (user?.email) return user.email[0]?.toUpperCase() ?? "N";
+    return "N";
+  }, [user?.email, user?.firstName, user?.lastName]);
+
+  const profileSubtitle = useMemo(() => {
+    if (user?.trainingGoal) {
+      const label =
+        trainingGoalLabels[user.trainingGoal] ?? user.trainingGoal;
+      return `Mục tiêu: ${label}`;
+    }
+    if (user?.hasCompletedProfile) {
+      return "Hồ sơ đã hoàn tất";
+    }
+    return "Hoàn thiện hồ sơ";
+  }, [user?.hasCompletedProfile, user?.trainingGoal]);
 
   return (
     <>
@@ -121,16 +168,16 @@ export function Sidebar() {
           <div className="px-4 py-4 border-t border-white/10 bg-gradient-to-r from-gray-800/70 to-gray-900/70">
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12 ring-2 ring-blue-500">
-                <AvatarImage src="/user-avatar.jpg" />
-                <AvatarFallback>NV</AvatarFallback>
+                <AvatarImage src={user?.profileImageUrl ?? "/user-avatar.jpg"} />
+                <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
               {!collapsed && (
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white truncate">
-                    Thái Bảo Duy
+                    {displayName}
                   </p>
                   <p className="text-xs text-gray-400 truncate">
-                    Cấp độ: Trung bình
+                    {profileSubtitle}
                   </p>
                 </div>
               )}

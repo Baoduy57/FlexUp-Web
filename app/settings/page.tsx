@@ -4,9 +4,9 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AccountSettings } from "@/components/settings/account-settings";
 import { NotificationSettings } from "@/components/settings/notification-settings";
-import { PrivacySettings } from "@/components/settings/privacy-settings";
+import { SubscriptionSettings } from "@/components/settings/subscription-settings";
 import { AppPreferences } from "@/components/settings/app-preferences";
-import { User, Bell, Shield, SettingsIcon } from "lucide-react";
+import { User, Bell, Crown, SettingsIcon } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function SettingsPage() {
@@ -62,11 +62,11 @@ export default function SettingsPage() {
                   <span className="hidden sm:inline">Thông báo</span>
                 </TabsTrigger>
                 <TabsTrigger
-                  value="privacy"
+                  value="subscription"
                   className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-400 data-[state=active]:to-cyan-500 data-[state=active]:text-white transition-all flex items-center justify-center gap-2"
                 >
-                  <Shield className="h-4 w-4" />
-                  <span className="hidden sm:inline">Riêng tư</span>
+                  <Crown className="h-4 w-4" />
+                  <span className="hidden sm:inline">Gói cước</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="preferences"
@@ -97,13 +97,13 @@ export default function SettingsPage() {
                 </motion.div>
               </TabsContent>
 
-              <TabsContent value="privacy" className="space-y-6 mt-6">
+              <TabsContent value="subscription" className="space-y-6 mt-6">
                 <motion.div
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4 }}
                 >
-                  <PrivacySettings />
+                  <SubscriptionSettings />
                 </motion.div>
               </TabsContent>
 

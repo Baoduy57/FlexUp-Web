@@ -1,142 +1,225 @@
-"use client";
+﻿"use client";
 
-import Link from "next/link";
-import { motion } from "framer-motion";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { useAuth } from "@/lib/auth-context";
+import { getMealPlanByGoal } from "@/data/meal-plans";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, Users, ChefHat, Star } from "lucide-react";
-import { meals } from "@/data/meals";
+import { Clock, Users, Star, TrendingUp, Flame, Droplet } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { motion } from "framer-motion";
 
 export function MealSuggestions() {
-  return (
-    <Card className="border-none shadow-lg bg-gradient-to-b from-white to-emerald-50 dark:from-gray-900 dark:to-gray-800">
+  const { user } = useAuth();
+  const [selectedMealType, setSelectedMealType] = useState("breakfast");
+  
+  const trainingGoal = (user?.trainingGoal || "maintain") as "muscle-gain" | "fat-loss" | "maintain" | "endurance";
+  const mealPlan = getMealPlanByGoal(trainingGoal)!;
+
+  const goalNames: Record<string, string> = {
+    "muscle-gain": "Tăng cơ",
+    "fat-loss": "Giảm mỡ",
+    "maintain": "Duy trì",
+    "endurance": "Tăng sức bền"
+  };
+
+  const goalDescriptions: Record<string, string> = {
+    "muscle-gain": "Chế độ ăn giàu protein và calo cao để hỗ trợ tăng cơ bắp",
+    "fat-loss": "Chế độ ăn giảm calo với dinh dưỡng cân bằng để đốt mỡ hiệu quả",
+    "maintain": "Chế độ ăn cân bằng để duy trì cân nặng và sức khỏe",
+    "endurance": "Chế độ ăn giàu carbohydrate để hỗ trợ các hoạt động thể lực kéo dài"
+  };
+
+  const difficultyColors: Record<string, string> = {
+    easy: "bg-green-500",
+    medium: "bg-yellow-500",
+    hard: "bg-red-500"
+  };
+
+  const difficultyLabels: Record<string, string> = {
+    easy: "Dễ",
+    medium: "Trung bình",
+    hard: "Khó"
+  };
+
+  const mealTypes = [
+    {
+      value: "breakfast",
+      label: "Bữa sáng",
+      icon: "🌅",
+      color: "from-yellow-200 to-orange-400",
+    },
+    {
+      value: "lunch",
+      label: "Bữa trưa",
+      icon: "☀️",
+      color: "from-green-200 to-emerald-400",
+    },
+    {
+      value: "dinner",
+      label: "Bữa tối",
+      icon: "🌙",
+      color: "from-blue-200 to-indigo-400",
+    },
+    {
+      value: "snack",
+      label: "Bữa phụ",
+      icon: "🍎",
+      color: "from-pink-200 to-red-400",
+    },
+  ];
+
+  const MealCard = ({ meal }: any) => (
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+      <div className="h-48 overflow-hidden">
+        <img 
+          src={meal.image} 
+          alt={meal.name}
+          className="w-full h-full object-cover"
+        />
+      </div>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg md:text-xl font-bold">
-          <ChefHat className="h-6 w-6 text-blue-600" />
-          Gợi ý thực đơn
-        </CardTitle>
-        <CardDescription>
-          Các món ăn phù hợp với mục tiêu dinh dưỡng của bạn
-        </CardDescription>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <CardTitle className="text-xl">{meal.name}</CardTitle>
+            <CardDescription className="mt-2">{meal.description}</CardDescription>
+          </div>
+          <Badge className={difficultyColors[meal.difficulty]}>
+            {difficultyLabels[meal.difficulty]}
+          </Badge>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {meals.map((meal, index) => (
-          <motion.div
-            key={meal.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            whileHover={{ scale: 1.02 }}
-            className="group relative border rounded-xl p-4 md:p-5 bg-white dark:bg-gray-900 shadow-sm hover:shadow-lg transition"
-          >
-            <div className="flex gap-4 md:gap-6">
-              {/* Ảnh món ăn */}
-              <motion.img
-                src={meal.image || "/placeholder.svg"}
-                alt={meal.name}
-                className="w-24 h-24 md:w-28 md:h-28 rounded-xl object-cover shadow-sm group-hover:shadow-md transition"
-                whileHover={{ rotate: 1 }}
-              />
-
-              {/* Nội dung */}
-              <div className="flex-1 space-y-3">
-                {/* Tên + rating */}
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="font-semibold text-base md:text-lg">
-                      {meal.name}
-                    </h4>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {meal.description}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm font-medium">{meal.rating}</span>
-                  </div>
-                </div>
-
-                {/* Thời gian, khẩu phần, độ khó */}
-                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    <span>{meal.prepTime}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Users className="h-4 w-4" />
-                    <span>{meal.servings} phần</span>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className="rounded-full px-3 py-0.5 text-xs"
-                  >
-                    {meal.difficulty}
-                  </Badge>
-                </div>
-
-                {/* Nutrition stats */}
-                <div className="grid grid-cols-4 gap-2 text-xs sm:text-sm">
-                  {[
-                    { label: "Cal", value: meal.calories },
-                    { label: "Protein", value: `${meal.protein}g` },
-                    { label: "Carbs", value: `${meal.carbs}g` },
-                    { label: "Fat", value: `${meal.fat}g` },
-                  ].map((stat, i) => (
-                    <div
-                      key={i}
-                      className="text-center p-2 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-gray-800 dark:to-gray-700 rounded-lg"
-                    >
-                      <div className="font-semibold">{stat.value}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {stat.label}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Nguyên liệu + nút */}
-                <div className="flex items-center justify-between pt-2">
-                  <div className="flex flex-wrap gap-1">
-                    {meal.ingredients.slice(0, 3).map((ingredient, idx) => (
-                      <Badge
-                        key={idx}
-                        variant="secondary"
-                        className="text-xs rounded-full"
-                      >
-                        {ingredient}
-                      </Badge>
-                    ))}
-                    {meal.ingredients.length > 3 && (
-                      <Badge
-                        variant="secondary"
-                        className="text-xs rounded-full"
-                      >
-                        +{meal.ingredients.length - 3}
-                      </Badge>
-                    )}
-                  </div>
-
-                  <Link href={`/nutrition/${meal.id}`}>
-                    <Button
-                      size="sm"
-                      className="rounded-full bg-gradient-to-r from-blue-400 to-cyan-500 text-white hover:opacity-90 transition"
-                    >
-                      Xem công thức
-                    </Button>
-                  </Link>
-                </div>
-              </div>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              <span>{meal.prepTime}</span>
             </div>
-          </motion.div>
-        ))}
+            <div className="flex items-center gap-1">
+              <Users className="h-4 w-4" />
+              <span>{meal.servings} người</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+            <span>{meal.rating}/5</span>
+          </div>
+        </div>
+
+        <Link href={"/nutrition/" + meal.id}>
+          <Button className="w-full">Xem công thức</Button>
+        </Link>
       </CardContent>
     </Card>
+  );
+
+  return (
+    <div className="space-y-6">
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            <CardTitle>Thực đơn cho mục tiêu: {goalNames[trainingGoal]}</CardTitle>
+          </div>
+          <CardDescription className="text-base">
+            {goalDescriptions[trainingGoal]}
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Calories</CardTitle>
+            <Flame className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{mealPlan.dailyCalories}</div>
+            <p className="text-xs text-muted-foreground">kcal/ngày</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Protein</CardTitle>
+            <TrendingUp className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{mealPlan.dailyProtein}g</div>
+            <p className="text-xs text-muted-foreground">mỗi ngày</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Carbs</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{mealPlan.dailyCarbs}g</div>
+            <p className="text-xs text-muted-foreground">mỗi ngày</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Nước</CardTitle>
+            <Droplet className="h-4 w-4 text-cyan-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{mealPlan.waterIntake}L</div>
+            <p className="text-xs text-muted-foreground">mỗi ngày</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Custom Meal Type Tabs with Gradient Colors */}
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {mealTypes.map((meal) => (
+            <motion.div
+              key={meal.value}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <div
+                className={`cursor-pointer h-24 rounded-xl shadow-md flex flex-col items-center justify-center text-center relative overflow-hidden transition ${
+                  selectedMealType === meal.value
+                    ? "ring-2 ring-primary"
+                    : "hover:shadow-lg"
+                }`}
+                onClick={() => setSelectedMealType(meal.value)}
+              >
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br ${meal.color} opacity-80`}
+                />
+                <div className="relative z-10">
+                  <div className="text-2xl mb-1">{meal.icon}</div>
+                  <div className="font-semibold">{meal.label}</div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Meal Content */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {selectedMealType === "breakfast" && mealPlan.meals.breakfast.map((meal) => (
+            <MealCard key={meal.id} meal={meal} />
+          ))}
+          {selectedMealType === "lunch" && mealPlan.meals.lunch.map((meal) => (
+            <MealCard key={meal.id} meal={meal} />
+          ))}
+          {selectedMealType === "dinner" && mealPlan.meals.dinner.map((meal) => (
+            <MealCard key={meal.id} meal={meal} />
+          ))}
+          {selectedMealType === "snack" && mealPlan.meals.snack.map((meal) => (
+            <MealCard key={meal.id} meal={meal} />
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

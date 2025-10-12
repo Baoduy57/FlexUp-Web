@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,19 +30,50 @@ export function ProfileSetup() {
   const totalSteps = 4;
   const [isLoading, setIsLoading] = useState(false);
 
-  const [profileData, setProfileData] = useState({
-    firstName: "",
-    lastName: "",
-    age: "",
-    gender: "",
-    height: "",
-    weight: "",
-    goal: "muscle-gain",
-    level: "",
-    weeklyWorkouts: "",
-  });
+  const { completeProfile, user: authUser } = useAuth();
 
-  const { updateProfile } = useAuth();
+  const calculateAgeFromDate = (dateString?: string | null) => {
+    if (!dateString) return "";
+    const dob = new Date(dateString);
+    if (Number.isNaN(dob.getTime())) return "";
+    const diff = Date.now() - dob.getTime();
+    const ageDate = new Date(diff);
+    const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+    return Number.isNaN(age) ? "" : age.toString();
+  };
+
+  const initialProfileState = useMemo(
+    () => ({
+      firstName: authUser?.firstName ?? "",
+      lastName: authUser?.lastName ?? "",
+      age: calculateAgeFromDate(authUser?.dateOfBirth),
+      gender: authUser?.gender ?? "",
+      height: authUser?.height ? authUser.height.toString() : "",
+      weight: authUser?.weight ? authUser.weight.toString() : "",
+      goal: authUser?.trainingGoal ?? "muscle-gain",
+      level: "",
+      weeklyWorkouts: "",
+    }),
+    [
+      authUser?.firstName,
+      authUser?.lastName,
+      authUser?.dateOfBirth,
+      authUser?.gender,
+      authUser?.height,
+      authUser?.weight,
+      authUser?.trainingGoal,
+    ]
+  );
+
+  const [profileData, setProfileData] = useState(initialProfileState);
+
+  useEffect(() => {
+    setProfileData((prev) => ({
+      ...prev,
+      ...initialProfileState,
+    }));
+  }, [initialProfileState]);
+
   const { toast } = useToast();
 
   const nextStep = () => {
@@ -57,7 +88,7 @@ export function ProfileSetup() {
     setIsLoading(true);
 
     try {
-      await updateProfile(profileData);
+      await completeProfile(profileData);
 
       toast({
         title: "Hồ sơ đã được thiết lập!",

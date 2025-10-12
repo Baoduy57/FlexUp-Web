@@ -12,10 +12,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Droplets, Plus, Minus } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import { getWaterIntakeByGoal } from "@/data/meal-plans";
 
 export function WaterTracker() {
-  const [waterIntake, setWaterIntake] = useState(1.8); // liters
-  const dailyTarget = 2.5; // liters
+  const { user } = useAuth();
+  
+  // Get dynamic water target based on user's training goal
+  const trainingGoal = (user?.trainingGoal || "maintain") as "muscle-gain" | "fat-loss" | "maintain" | "endurance";
+  const dailyTarget = getWaterIntakeByGoal(trainingGoal);
+  
+  const [waterIntake, setWaterIntake] = useState(0); // liters
 
   const addWater = (amount: number) => {
     setWaterIntake(Math.min(waterIntake + amount, dailyTarget + 1));
