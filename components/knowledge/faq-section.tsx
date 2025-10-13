@@ -175,7 +175,7 @@ export function FAQSection() {
             placeholder="Tìm kiếm câu hỏi..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 rounded-xl focus-visible:ring-2 focus-visible:ring-blue-500 transition"
           />
         </div>
         <div className="flex gap-2 flex-wrap">

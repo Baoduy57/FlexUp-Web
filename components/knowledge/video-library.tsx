@@ -40,6 +40,7 @@ interface Video {
   duration: string;
   views: number;
   likes: number;
+  isLiked: boolean;
   publishDate: string;
   thumbnail: string;
   videoUrl: string;
@@ -51,108 +52,120 @@ interface Video {
 const videos: Video[] = [
   {
     id: "1",
-    title: "HIIT Workout 20 Phút - Đốt Cháy Mỡ Toàn Thân",
+    title: "15 PHÚT TABATA CỰC ĐÃ - Toàn thân, toát mồ hôi",
     description:
-      "Bài tập HIIT cường độ cao giúp đốt cháy calories hiệu quả trong thời gian ngắn",
+      "Bài tập Tabata (một dạng HIIT) cường độ cao trong 15 phút giúp đốt mỡ toàn thân hiệu quả và nhanh chóng. Không cần dụng cụ.",
     instructor: {
-      name: "HLV Minh Anh",
+      name: "Hana Giang Anh",
       avatar: "/user-avatar.jpg",
-      credentials: "Chứng chỉ ACSM",
+      credentials: "HLV Fitness & Yoga",
     },
     category: "Cardio",
-    duration: "20:15",
-    views: 15420,
-    likes: 892,
-    publishDate: "2024-01-15",
-    thumbnail: "/cardio-fat-burning-workout.jpg",
-    videoUrl: "https://www.youtube.com/embed/ml6cT4AZdqI",
+    duration: "17:26",
+    views: 931000,
+    likes: 14000,
+    isLiked: false,
+    publishDate: "2021-07-27",
+    thumbnail: "https://i.ytimg.com/vi/DT5rVjFeDX0/hqdefault.jpg",
+    videoUrl: "https://www.youtube.com/embed/DT5rVjFeDX0",
     difficulty: "Trung bình",
     isBookmarked: false,
-    tags: ["hiit", "cardio", "giảm cân", "toàn thân"],
+    tags: ["hiit", "tabata", "toàn thân", "giảm mỡ", "hana giang anh"],
   },
   {
     id: "2",
-    title: "Yoga Buổi Sáng - 15 Phút Khởi Động Cơ Thể",
+    title: "Yoga cho NGƯỜI MỚI - Bài 1: MỀM CƠ, DẺO KHỚP",
     description:
-      "Chuỗi động tác yoga nhẹ nhàng để bắt đầu ngày mới đầy năng lượng",
+      "Bài tập Yoga đầu tiên trong chuỗi video cho người mới bắt đầu, tập trung vào các động tác làm mềm cơ và tăng sự dẻo dai cho khớp.",
     instructor: {
-      name: "Cô Mai Linh",
+      name: "Yoga By Sophie",
       avatar: "/user-avatar.jpg",
-      credentials: "RYT-200 Yoga Alliance",
+      credentials: "Yoga Alliance Certified",
     },
     category: "Yoga",
-    duration: "15:30",
-    views: 8750,
-    likes: 654,
-    publishDate: "2024-01-12",
-    thumbnail: "/fitness-exercise-demonstration.jpg",
-    videoUrl: "https://www.youtube.com/embed/v7AYKMP6rOE",
+    duration: "38:34",
+    views: 3400000,
+    likes: 41000,
+    isLiked: false,
+    publishDate: "2017-10-22",
+    thumbnail: "https://i.ytimg.com/vi/cY_eREIsE7s/hqdefault.jpg",
+    videoUrl: "https://www.youtube.com/embed/cY_eREIsE7s",
     difficulty: "Dễ",
     isBookmarked: true,
-    tags: ["yoga", "buổi sáng", "thư giãn", "linh hoạt"],
+    tags: ["yoga", "người mới bắt đầu", "dẻo dai", "cơ bản", "yoga by sophie"],
   },
   {
     id: "3",
-    title: "Tập Ngực Và Vai - Kỹ Thuật Chuẩn",
+    title:
+      "30-Minute Full Body Stretching Routine for Flexibility & Pain Relief",
     description:
-      "Hướng dẫn chi tiết các bài tập ngực và vai với kỹ thuật đúng để tránh chấn thương",
+      "Bài giãn cơ toàn thân trong 30 phút giúp cải thiện sự linh hoạt, giảm đau mỏi cơ bắp và thư giãn sâu sau những giờ làm việc căng thẳng.",
     instructor: {
-      name: "HLV Đức Anh",
+      name: "Adriene Mishler",
       avatar: "/user-avatar.jpg",
-      credentials: "NSCA-CPT",
+      credentials: "Yoga With Adriene",
     },
-    category: "Tăng cơ",
-    duration: "25:45",
-    views: 12300,
-    likes: 1205,
-    publishDate: "2024-01-10",
-    thumbnail: "/chest-and-shoulder-workout.jpg",
-    videoUrl: "https://www.youtube.com/embed/GBcN3Ydz8RM",
-    difficulty: "Trung bình",
-    isBookmarked: false,
-    tags: ["ngực", "vai", "tăng cơ", "kỹ thuật"],
+    category: "Phục hồi",
+    duration: "15:00",
+    views: 25000000,
+    likes: 368000,
+    isLiked: false,
+    publishDate: "2018-05-27",
+    thumbnail: "https://i.ytimg.com/vi/L_xrDAtykMI/hqdefault.jpg",
+    videoUrl: "https://www.youtube.com/embed/L_xrDAtykMI",
+    difficulty: "Dễ",
+    isBookmarked: true,
+    tags: ["giãn cơ", "linh hoạt", "giảm đau", "thư giãn", "yoga with adriene"],
   },
   {
     id: "4",
-    title: "Stretching Toàn Thân - Phục Hồi Sau Tập",
+    title: "GIÃN CƠ giúp phục hồi sau buổi tập (Không dụng cụ)",
     description:
-      "Bài tập giãn cơ toàn diện giúp phục hồi cơ bắp và tăng tính linh hoạt",
+      "15 động tác giãn cơ tĩnh giúp thư giãn, thả lỏng cơ bắp toàn thân sau khi tập luyện, hỗ trợ phục hồi và giảm đau mỏi.",
     instructor: {
-      name: "PT Hương Giang",
+      name: "SHINPHAMM",
       avatar: "/user-avatar.jpg",
-      credentials: "NASM-CES",
+      credentials: "Fitness & Lifestyle Vlogger",
     },
     category: "Phục hồi",
-    duration: "18:20",
-    views: 6890,
-    likes: 423,
-    publishDate: "2024-01-08",
-    thumbnail: "/fitness-exercise-demonstration.jpg",
-    videoUrl: "https://www.youtube.com/embed/g_tea8ZNk5A",
+    duration: "13:45",
+    views: 1200000,
+    likes: 25000,
+    isLiked: false,
+    publishDate: "2020-07-25",
+    thumbnail: "https://i.ytimg.com/vi/-pqYjmSvjMY/hqdefault.jpg",
+    videoUrl: "https://www.youtube.com/embed/-pqYjmSvjMY",
     difficulty: "Dễ",
     isBookmarked: true,
-    tags: ["stretching", "phục hồi", "linh hoạt", "thư giãn"],
+    tags: ["giãn cơ", "phục hồi", "sau khi tập", "thư giãn", "shinphamm"],
   },
   {
     id: "5",
-    title: "Squat và Deadlift - Kỹ Thuật Nâng Cao",
+    title: "20 MIN FULL BODY WORKOUT - Beginner Version",
     description:
-      "Hướng dẫn kỹ thuật nâng cao cho hai bài tập cơ bản nhất trong gym",
+      "Bài tập toàn thân 20 phút dành cho người mới bắt đầu từ Pamela Reif. Không cần dụng cụ, có các lựa chọn dễ hơn cho từng động tác.",
     instructor: {
-      name: "HLV Nam Khánh",
+      name: "Pamela Reif",
       avatar: "/user-avatar.jpg",
-      credentials: "Powerlifting Coach",
+      credentials: "International Fitness Influencer",
     },
-    category: "Tăng cơ",
-    duration: "32:10",
-    views: 18650,
-    likes: 1456,
-    publishDate: "2024-01-05",
-    thumbnail: "/chest-and-shoulder-workout.jpg",
-    videoUrl: "https://www.youtube.com/embed/lsSC0c93zV8",
-    difficulty: "Khó",
+    category: "Cardio",
+    duration: "21:55",
+    views: 63000000,
+    likes: 847000,
+    isLiked: false,
+    publishDate: "2020-04-26",
+    thumbnail: "https://i.ytimg.com/vi/UItWltVZZmE/hqdefault.jpg",
+    videoUrl: "https://www.youtube.com/embed/UItWltVZZmE",
+    difficulty: "Dễ",
     isBookmarked: false,
-    tags: ["squat", "deadlift", "kỹ thuật", "nâng cao"],
+    tags: [
+      "toàn thân",
+      "người mới bắt đầu",
+      "không dụng cụ",
+      "giảm cân",
+      "pamela reif",
+    ],
   },
 ];
 const categories = ["Tất cả", "Cardio", "Tăng cơ", "Yoga", "Phục hồi"];
@@ -193,9 +206,21 @@ export function VideoLibrary() {
 
   const handleLike = (videoId: string) => {
     setVideoList(
-      videoList.map((video) =>
-        video.id === videoId ? { ...video, likes: video.likes + 1 } : video
-      )
+      videoList.map((video) => {
+        // Chỉ thay đổi video có id trùng khớp
+        if (video.id === videoId) {
+          // Nếu chưa like thì +1, nếu đã like thì -1
+          const newLikes = video.isLiked ? video.likes - 1 : video.likes + 1;
+          // Trả về một object mới với trạng thái được cập nhật
+          return {
+            ...video,
+            likes: newLikes,
+            isLiked: !video.isLiked, // Đảo ngược trạng thái isLiked
+          };
+        }
+        // Trả về video gốc nếu không trùng id
+        return video;
+      })
     );
   };
 
@@ -237,7 +262,7 @@ export function VideoLibrary() {
             placeholder="Tìm kiếm video, huấn luyện viên..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 rounded-xl focus-visible:ring-2 focus-visible:ring-blue-500 transition"
           />
         </div>
 
@@ -296,7 +321,7 @@ export function VideoLibrary() {
             viewport={{ once: true }}
           >
             <Card className="overflow-hidden hover:shadow-xl transition-shadow duration-300">
-              <div 
+              <div
                 className="aspect-video relative overflow-hidden group cursor-pointer rounded-lg"
                 onClick={() => {
                   setSelectedVideo(video);
@@ -420,10 +445,13 @@ export function VideoLibrary() {
                       Chia sẻ
                     </Button>
                   </div>
-                  <Button size="sm" onClick={() => {
-                    setSelectedVideo(video);
-                    setIsVideoModalOpen(true);
-                  }}>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setSelectedVideo(video);
+                      setIsVideoModalOpen(true);
+                    }}
+                  >
                     <Play className="h-4 w-4 mr-1" />
                     Xem
                   </Button>
@@ -461,7 +489,7 @@ export function VideoLibrary() {
               </div>
             </div>
           </DialogHeader>
-          
+
           {selectedVideo && (
             <div className="p-6 pt-4 space-y-4">
               {/* Video Player */}
@@ -485,7 +513,9 @@ export function VideoLibrary() {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-semibold">{selectedVideo.instructor.name}</p>
+                    <p className="font-semibold">
+                      {selectedVideo.instructor.name}
+                    </p>
                     <p className="text-sm text-muted-foreground">
                       {selectedVideo.instructor.credentials}
                     </p>
