@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import Image from "next/image";
 import {
   Heart,
   MessageCircle,
@@ -315,9 +316,11 @@ export function SocialFeed() {
                     whileHover={{ scale: 1.02 }}
                     className="rounded-xl overflow-hidden shadow-md"
                   >
-                    <img
+                    <Image
                       src={post.image || "/placeholder.svg"}
                       alt="Post image"
+                      width={1024}
+                      height={256}
                       className="w-full h-64 object-cover"
                     />
                   </motion.div>

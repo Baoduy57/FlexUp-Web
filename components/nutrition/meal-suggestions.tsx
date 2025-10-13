@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useAuth } from "@/lib/auth-context";
-import { getMealPlanByGoal } from "@/data/meal-plans";
+import { getMealPlanByGoal, type Meal } from "@/data/meal-plans";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Clock, Users, Star, TrendingUp, Flame, Droplet } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 export function MealSuggestions() {
   const { user } = useAuth();
@@ -70,13 +71,14 @@ export function MealSuggestions() {
     },
   ];
 
-  const MealCard = ({ meal }: any) => (
+  const MealCard = ({ meal }: { meal: Meal }) => (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="h-48 overflow-hidden">
-        <img 
+      <div className="relative h-48 overflow-hidden">
+        <Image 
           src={meal.image} 
           alt={meal.name}
-          className="w-full h-full object-cover"
+          fill
+          className="object-cover"
         />
       </div>
       <CardHeader>

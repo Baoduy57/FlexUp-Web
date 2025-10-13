@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +29,6 @@ interface SubscriptionInfo {
 
 export function SubscriptionSettings() {
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const { accessToken } = useAuth();
@@ -51,14 +50,9 @@ export function SubscriptionSettings() {
     "Không quảng cáo"
   ];
 
-  useEffect(() => {
-    fetchSubscription();
-  }, []);
-
-  const fetchSubscription = async () => {
+  const fetchSubscription = useCallback(async () => {
     if (!accessToken) return;
-    
-    setIsLoading(true);
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/Subscription/current`, {
         headers: {
@@ -72,10 +66,12 @@ export function SubscriptionSettings() {
       }
     } catch (error) {
       console.error("Failed to fetch subscription:", error);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [accessToken]);
+
+  useEffect(() => {
+    void fetchSubscription();
+  }, [fetchSubscription]);
 
   const handleUpgrade = async () => {
     if (!accessToken) return;
@@ -107,6 +103,7 @@ export function SubscriptionSettings() {
         throw new Error("Upgrade failed");
       }
     } catch (error) {
+      console.error("Failed to upgrade subscription:", error);
       toast({
         title: "Lỗi nâng cấp",
         description: "Không thể nâng cấp lên Premium. Vui lòng thử lại.",
@@ -114,34 +111,6 @@ export function SubscriptionSettings() {
       });
     } finally {
       setIsUpgrading(false);
-    }
-  };
-
-  const handleCancelSubscription = async () => {
-    if (!accessToken) return;
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/Subscription/cancel`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        toast({
-          title: "Đã hủy đăng ký",
-          description: result.message,
-        });
-        await fetchSubscription();
-      }
-    } catch (error) {
-      toast({
-        title: "Lỗi",
-        description: "Không thể hủy đăng ký. Vui lòng thử lại.",
-        variant: "destructive",
-      });
     }
   };
 

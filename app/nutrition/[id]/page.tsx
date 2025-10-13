@@ -5,6 +5,7 @@ import { getAllMeals } from "@/data/meal-plans";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Users, Star, Flame, ChefHat } from "lucide-react";
+import Image from "next/image";
 
 interface Props {
   params: { id: string };
@@ -13,7 +14,7 @@ interface Props {
 export default function MealDetailPage({ params }: Props) {
   // Get all meals and find the one with matching ID
   const allMeals = getAllMeals();
-  const meal = allMeals.find((m: any) => m.id === params.id);
+  const meal = allMeals.find((m) => m.id === params.id);
   
   if (!meal) return notFound();
 
@@ -42,11 +43,13 @@ export default function MealDetailPage({ params }: Props) {
 
       {/* Main Image */}
       <Card className="mb-6 overflow-hidden">
-        <div className="h-80 overflow-hidden">
-          <img 
+        <div className="relative h-80 overflow-hidden">
+          <Image 
             src={meal.image} 
             alt={meal.name}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            priority
           />
         </div>
       </Card>

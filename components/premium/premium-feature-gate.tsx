@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Crown, Lock, Sparkles } from "lucide-react";
@@ -27,11 +27,7 @@ export function PremiumFeatureGate({
   const { accessToken, user } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    checkAccess();
-  }, [accessToken, featureName]);
-
-  const checkAccess = async () => {
+  const checkAccess = useCallback(async () => {
     if (!accessToken) {
       setHasAccess(false);
       setIsLoading(false);
@@ -60,7 +56,11 @@ export function PremiumFeatureGate({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [accessToken, featureName]);
+
+  useEffect(() => {
+    void checkAccess();
+  }, [checkAccess]);
 
   if (isLoading) {
     return (

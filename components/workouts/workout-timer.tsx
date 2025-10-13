@@ -58,7 +58,7 @@ export function WorkoutTimer({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isRunning, timeLeft, completed, onComplete]);
+  }, [isRunning, timeLeft, completed, onComplete, disabled]);
 
   const formatTime = (seconds: number) => {
     const safeSeconds = Math.max(seconds, 0);

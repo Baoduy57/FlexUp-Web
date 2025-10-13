@@ -13,6 +13,9 @@ import { mapCategoryLabel, mapDifficultyLabel } from "@/lib/workout-utils";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
+import Image from "next/image";
+
+const MotionImage = motion(Image);
 
 interface WorkoutExerciseDetail {
   exerciseId: number;
@@ -564,9 +567,11 @@ export default function WorkoutDetailPage({ params }: WorkoutDetailPageProps) {
                           <source src={exercise.videoUrl} type="video/mp4" />
                         </motion.video>
                       ) : exercise.imageUrl ? (
-                        <motion.img
+                        <MotionImage
                           src={exercise.imageUrl}
                           alt={exercise.name}
+                          width={960}
+                          height={540}
                           className="w-full rounded-xl shadow-md object-cover"
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}

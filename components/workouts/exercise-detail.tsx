@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Play, Clock, Target, AlertCircle } from "lucide-react"
+import Image from "next/image"
 
 interface ExerciseDetailProps {
   name: string
@@ -41,7 +42,13 @@ export function ExerciseDetail({
                   <Play className="h-8 w-8" />
                 </Button>
               </div>
-              <img src="/fitness-exercise-demonstration.jpg" alt={name} className="w-full h-full object-cover" />
+              <Image
+                src="/fitness-exercise-demonstration.jpg"
+                alt={name}
+                fill
+                className="object-cover"
+                priority
+              />
             </div>
           </CardContent>
         </Card>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { WorkoutCard } from "@/components/workouts/workout-card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,16 @@ interface WorkoutSummary {
 interface ApiWorkoutResponse {
   message?: string;
   data?: WorkoutSummary[];
+}
+
+interface FavoriteWorkoutPayload {
+  workoutId: number | string;
+  workout: WorkoutSummary;
+}
+
+interface FavoriteWorkoutApiResponse {
+  message?: string;
+  data?: FavoriteWorkoutPayload[];
 }
 
 const motionGridVariants = {
@@ -149,15 +159,15 @@ export default function WorkoutsPage() {
           throw new Error("Không thể tải danh sách yêu thích");
         }
 
-        const payload = await response.json();
+        const payload = (await response.json()) as FavoriteWorkoutApiResponse;
         const favorites = payload.data ?? [];
-        
+
         // Extract workout data from favorites
-        const workouts = favorites.map((fav: any) => fav.workout);
+        const workouts = favorites.map((fav) => fav.workout);
         setFavoriteWorkouts(workouts);
-        
+
         // Store favorite IDs for quick lookup
-        const ids = new Set<number>(favorites.map((fav: any) => Number(fav.workoutId)));
+        const ids = new Set<number>(favorites.map((fav) => Number(fav.workoutId)));
         setFavoriteIds(ids);
       } catch (err) {
         setErrorFavorites(err instanceof Error ? err.message : "Đã xảy ra lỗi bất ngờ.");
@@ -191,19 +201,22 @@ export default function WorkoutsPage() {
     }
   };
 
-  const filterBySearch = (items: WorkoutSummary[]) => {
-    const term = searchTerm.trim().toLowerCase();
+  const filterBySearch = useCallback(
+    (items: WorkoutSummary[]) => {
+      const term = searchTerm.trim().toLowerCase();
 
-    if (!term) {
-      return items;
-    }
+      if (!term) {
+        return items;
+      }
 
-    return items.filter(
-      (workout) =>
-        workout.name.toLowerCase().includes(term) ||
-        workout.description.toLowerCase().includes(term)
-    );
-  };
+      return items.filter(
+        (workout) =>
+          workout.name.toLowerCase().includes(term) ||
+          workout.description.toLowerCase().includes(term)
+      );
+    },
+    [searchTerm]
+  );
 
   const visibleRecommended = useMemo(() => {
     const filtered = filterBySearch(recommendedWorkouts);
@@ -213,7 +226,7 @@ export default function WorkoutsPage() {
     return filtered.filter(
       (workout) => workout.difficultyLevel === difficultyFilter
     );
-  }, [recommendedWorkouts, searchTerm, difficultyFilter]);
+  }, [recommendedWorkouts, difficultyFilter, filterBySearch]);
 
   const visibleFavorites = useMemo(() => {
     const filtered = filterBySearch(favoriteWorkouts);
@@ -223,7 +236,7 @@ export default function WorkoutsPage() {
     return filtered.filter(
       (workout) => workout.difficultyLevel === difficultyFilter
     );
-  }, [favoriteWorkouts, searchTerm, difficultyFilter]);
+  }, [favoriteWorkouts, difficultyFilter, filterBySearch]);
 
   const recommendedHeading = (() => {
     const goalKey = user?.trainingGoal?.toLowerCase();

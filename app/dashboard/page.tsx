@@ -10,6 +10,7 @@ import { TipsAndReminders } from "@/components/dashboard/tips-reminders";
 import { motion } from "framer-motion";
 import { Flame, Activity } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import Image from "next/image";
 
 const trainingGoalLabels: Record<string, string> = {
   "muscle-gain": "Tăng cơ",
@@ -100,10 +101,13 @@ export default function DashboardPage() {
                   </p>
                 </div>
               </div>
-              <img
+              <Image
                 src={user?.profileImageUrl ?? "/user-avatar.jpg"}
                 alt="User avatar"
+                width={56}
+                height={56}
                 className="w-14 h-14 rounded-full border-2 border-primary shadow-md object-cover"
+                priority
               />
             </div>
           </motion.div>

@@ -107,7 +107,7 @@ export class ApiClient {
     return this.fetch(url, { ...options, method: "GET" });
   }
 
-  static async post(url: string, body?: any, options?: ApiRequestOptions) {
+  static async post(url: string, body?: unknown, options?: ApiRequestOptions) {
     return this.fetch(url, {
       ...options,
       method: "POST",
@@ -119,7 +119,7 @@ export class ApiClient {
     });
   }
 
-  static async put(url: string, body?: any, options?: ApiRequestOptions) {
+  static async put(url: string, body?: unknown, options?: ApiRequestOptions) {
     return this.fetch(url, {
       ...options,
       method: "PUT",

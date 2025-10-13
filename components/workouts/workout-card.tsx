@@ -17,6 +17,9 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { API_BASE_URL } from "@/lib/config";
 import { useToast } from "@/hooks/use-toast";
+import Image from "next/image";
+
+const MotionImage = motion(Image);
 
 interface WorkoutSummary {
   id: number;
@@ -87,6 +90,7 @@ export function WorkoutCard({ workout, isBookmarked = false, onBookmarkChange }:
 
       onBookmarkChange?.(workout.id, newBookmarkedState);
     } catch (error) {
+      console.error("Failed to toggle favorite workout:", error);
       toast({
         title: "Lỗi",
         description: "Không thể cập nhật trạng thái yêu thích",
@@ -104,11 +108,12 @@ export function WorkoutCard({ workout, isBookmarked = false, onBookmarkChange }:
     >
       <Card className="overflow-hidden rounded-xl shadow-md hover:shadow-xl transition-all duration-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
         <div className="relative">
-          <Link href={`/workouts/${workout.id}`}>
-            <motion.img
+          <Link href={`/workouts/${workout.id}`} className="block relative h-48">
+            <MotionImage
               src={imageSrc}
               alt={workout.name}
-              className="w-full h-48 object-cover"
+              fill
+              className="object-cover"
               whileHover={{ scale: 1.05 }}
               transition={{ duration: 0.3 }}
             />

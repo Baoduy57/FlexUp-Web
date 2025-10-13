@@ -2,12 +2,13 @@
 
 import { useParams } from "next/navigation";
 import { articles as articlesData, Article } from "@/data/articles";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Star, Bookmark } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function ArticleDetailPage() {
   const { id } = useParams();
@@ -22,10 +23,12 @@ export default function ArticleDetailPage() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
       {/* Hero Section */}
       <div className="relative h-96 md:h-[480px] overflow-hidden rounded-b-3xl shadow-lg">
-        <img
+        <Image
           src={article.image}
           alt={article.title}
-          className="w-full h-full object-cover"
+          fill
+          className="object-cover"
+          priority
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
         <div className="absolute bottom-8 left-8 text-white space-y-2">
@@ -83,12 +86,12 @@ export default function ArticleDetailPage() {
               color: "from-purple-400 to-pink-500",
               icon: Bookmark,
             },
-          ].map((info, i) => (
+          ].map((info, index) => (
             <motion.div
-              key={i}
+              key={info.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 * i }}
+              transition={{ delay: 0.1 * index }}
             >
               <Card className="rounded-2xl backdrop-blur-md bg-white/70 border border-white/20 shadow-lg hover:shadow-xl transition">
                 <CardContent className="flex flex-col items-center py-6">
@@ -114,7 +117,7 @@ export default function ArticleDetailPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          {article.tags.map((tag, i) => (
+          {article.tags.map((tag) => (
             <Badge
               key={tag}
               className="bg-white/30 text-white backdrop-blur px-3 py-1 hover:scale-105 transition"

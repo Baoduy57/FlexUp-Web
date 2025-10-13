@@ -7,6 +7,19 @@ import { useRouter } from "next/navigation";
 import { API_BASE_URL } from "./config";
 
 const AUTH_STORAGE_KEY = "flexup_auth";
+const SESSION_COOKIE_NAME = "flexup_session";
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7 days
+
+const setSessionCookie = () => {
+  if (typeof document === "undefined" || typeof window === "undefined") return;
+  const isSecure = window.location.protocol === "https:";
+  document.cookie = `${SESSION_COOKIE_NAME}=active; path=/; max-age=${SESSION_MAX_AGE_SECONDS}; sameSite=Lax${isSecure ? "; secure" : ""}`;
+};
+
+const clearSessionCookie = () => {
+  if (typeof document === "undefined") return;
+  document.cookie = `${SESSION_COOKIE_NAME}=; path=/; max-age=0; sameSite=Lax`;
+};
 
 const genderEnumMap: Record<number, string> = {
   0: "male",
@@ -20,6 +33,39 @@ const trainingGoalEnumMap: Record<number, string> = {
   2: "maintain",
   3: "endurance",
 };
+
+const trainingGoalApiMap: Record<string, string> = {
+  "muscle-gain": "MuscleGain",
+  muscle: "MuscleGain",
+  "muscle_gain": "MuscleGain",
+  "fat-loss": "FatLoss",
+  fat: "FatLoss",
+  "fat_loss": "FatLoss",
+  maintain: "Maintain",
+  maintenance: "Maintain",
+  endurance: "Endurance",
+};
+
+type RawProfilePayload = Partial<{
+  firstName: string | null;
+  FirstName: string | null;
+  lastName: string | null;
+  LastName: string | null;
+  phoneNumber: string | null;
+  PhoneNumber: string | null;
+  profileImageUrl: string | null;
+  ProfileImageUrl: string | null;
+  gender: string | number | null;
+  Gender: string | number | null;
+  trainingGoal: string | number | null;
+  TrainingGoal: string | number | null;
+  height: number | string | null;
+  Height: number | string | null;
+  weight: number | string | null;
+  Weight: number | string | null;
+  dateOfBirth: string | null;
+  DateOfBirth: string | null;
+}>;
 
 interface User {
   id: string;
@@ -77,7 +123,10 @@ interface AuthContextType {
   completeProfile: (profileData: CompleteProfilePayload) => Promise<void>;
   updateProfile: (profileData: AccountUpdatePayload) => Promise<User | null>;
   refreshProfile: () => Promise<User | null>;
-  refreshAccessToken: () => Promise<boolean>;
+  refreshAccessToken: (
+    tokenSource?: AuthTokens | null,
+    userSource?: User | null
+  ) => Promise<boolean>;
   handleRedirectAfterRegister: () => void;
   accessToken: string | null;
 }
@@ -137,6 +186,12 @@ const normalizeTrainingGoal = (value: unknown): string | undefined => {
   return undefined;
 };
 
+const toApiTrainingGoal = (value?: string | null): string | undefined => {
+  if (!value) return undefined;
+  const normalized = value.toLowerCase();
+  return trainingGoalApiMap[normalized] ?? value;
+};
+
 const ageToDateString = (age?: string): string | null => {
   const value = toNullableNumber(age);
   if (value === undefined) return null;
@@ -147,7 +202,7 @@ const ageToDateString = (age?: string): string | null => {
   return birthDate.toISOString().split("T")[0];
 };
 
-const parseProfilePayload = (payload: any, baseUser: User): User => {
+const parseProfilePayload = (payload: RawProfilePayload, baseUser: User): User => {
   const firstName = payload?.firstName ?? payload?.FirstName ?? baseUser.firstName;
   const lastName = payload?.lastName ?? payload?.LastName ?? baseUser.lastName;
   const phoneNumber =
@@ -204,11 +259,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem("user");
       }
 
-      const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (storedAuth) {
-        const parsed: StoredAuth = JSON.parse(storedAuth);
+      const storedAuthRaw = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (storedAuthRaw) {
+        const parsed: StoredAuth = JSON.parse(storedAuthRaw);
         setUser(parsed.user);
         setTokens({ token: parsed.token, refreshToken: parsed.refreshToken });
+
         try {
           await refreshUserProfileInternal(
             { token: parsed.token, refreshToken: parsed.refreshToken },
@@ -216,6 +272,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           );
         } catch (error) {
           console.error("Unable to refresh profile during init:", error);
+
+          const recovered = await refreshAccessToken(
+            { token: parsed.token, refreshToken: parsed.refreshToken },
+            parsed.user
+          );
+
+          if (recovered) {
+            try {
+              await refreshUserProfileInternal();
+            } catch (profileError) {
+              console.error("Profile load failed after token refresh:", profileError);
+              clearAuthState();
+            }
+          } else {
+            clearAuthState();
+          }
         }
       }
     } catch (error) {
@@ -230,12 +302,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth));
     setUser(auth.user);
     setTokens({ token: auth.token, refreshToken: auth.refreshToken });
+    setSessionCookie();
   };
 
   const clearAuthState = () => {
     localStorage.removeItem(AUTH_STORAGE_KEY);
     setUser(null);
     setTokens(null);
+    clearSessionCookie();
   };
 
   const refreshUserProfileInternal = async (
@@ -278,12 +352,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return mappedUser;
   };
 
-  const refreshAccessToken = async (): Promise<boolean> => {
-    try {
-      if (!tokens?.refreshToken) {
-        return false;
-      }
+  const refreshAccessToken = async (
+    tokenSource?: AuthTokens | null,
+    userSource?: User | null
+  ): Promise<boolean> => {
+    const activeTokens = tokenSource ?? tokens;
+    const activeUser = userSource ?? user;
 
+    if (!activeTokens?.refreshToken || !activeUser) {
+      return false;
+    }
+
+    try {
       const response = await fetch(
         `${API_BASE_URL}/api/Authentication/refresh-token`,
         {
@@ -291,7 +371,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ refreshToken: tokens.refreshToken }),
+          body: JSON.stringify({ refreshToken: activeTokens.refreshToken }),
         }
       );
 
@@ -301,10 +381,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const data = await response.json();
-      
-      if (data.token && data.refreshToken && user) {
+
+      if (data.token && data.refreshToken) {
         persistAuthState({
-          user,
+          user: activeUser,
           token: data.token,
           refreshToken: data.refreshToken,
         });
@@ -405,7 +485,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       age: toNullableNumber(profileData.age ?? ""),
       height: toNullableNumber(profileData.height ?? ""),
       weight: toNullableNumber(profileData.weight ?? ""),
-      trainingGoal: profileData.goal || null,
+      trainingGoal: toApiTrainingGoal(profileData.goal) ?? null,
     };
 
     const response = await fetch(
@@ -470,8 +550,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       formData.append("Gender", profileData.gender);
     }
 
-    if (profileData.trainingGoal) {
-      formData.append("TrainingGoal", profileData.trainingGoal);
+    const trainingGoalValue = toApiTrainingGoal(profileData.trainingGoal);
+    if (trainingGoalValue) {
+      formData.append("TrainingGoal", trainingGoalValue);
     }
 
     const heightValue = toNullableNumber(profileData.height);

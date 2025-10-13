@@ -28,6 +28,10 @@ interface Measurement {
   thighs: number;
 }
 
+type MeasurementField = Exclude<keyof Measurement, "date">;
+
+type MeasurementFormState = Record<MeasurementField, string>;
+
 export function BodyMeasurements() {
   const [measurements, setMeasurements] = useState<Measurement[]>([
     {
@@ -54,7 +58,18 @@ export function BodyMeasurements() {
     },
   ]);
 
-  const [newMeasurement, setNewMeasurement] = useState({
+  const measurementFields: MeasurementField[] = [
+    "weight",
+    "bodyFat",
+    "muscle",
+    "chest",
+    "waist",
+    "hips",
+    "arms",
+    "thighs",
+  ];
+
+  const emptyMeasurement: MeasurementFormState = {
     weight: "",
     bodyFat: "",
     muscle: "",
@@ -63,7 +78,10 @@ export function BodyMeasurements() {
     hips: "",
     arms: "",
     thighs: "",
-  });
+  };
+
+  const [newMeasurement, setNewMeasurement] =
+    useState<MeasurementFormState>({ ...emptyMeasurement });
 
   const getTrend = (current: number, previous: number) => {
     if (current > previous) return "up";
@@ -96,16 +114,7 @@ export function BodyMeasurements() {
     };
 
     setMeasurements([measurement, ...measurements]);
-    setNewMeasurement({
-      weight: "",
-      bodyFat: "",
-      muscle: "",
-      chest: "",
-      waist: "",
-      hips: "",
-      arms: "",
-      thighs: "",
-    });
+    setNewMeasurement({ ...emptyMeasurement });
   };
 
   const latest = measurements[0];
@@ -212,19 +221,19 @@ export function BodyMeasurements() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.keys(newMeasurement).map((key) => (
-                    <div key={key} className="space-y-2">
-                      <Label htmlFor={key}>{key}</Label>
+                  {measurementFields.map((field) => (
+                    <div key={field} className="space-y-2">
+                      <Label htmlFor={field}>{field}</Label>
                       <Input
                         className="rounded-xl focus-visible:ring-2 focus-visible:ring-blue-500 transition"
-                        id={key}
+                        id={field}
                         type="number"
                         step="0.1"
-                        value={(newMeasurement as any)[key]}
+                        value={newMeasurement[field]}
                         onChange={(e) =>
                           setNewMeasurement({
                             ...newMeasurement,
-                            [key]: e.target.value,
+                            [field]: e.target.value,
                           })
                         }
                       />

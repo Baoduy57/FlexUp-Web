@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { articles } from "@/data/articles";
+import Image from "next/image";
 
 const categories = ["Tất cả", "Tập luyện", "Dinh dưỡng", "Sức khỏe", "An toàn"];
 
@@ -122,10 +123,11 @@ export function ArticlesLibrary() {
           >
             <Card className="overflow-hidden rounded-2xl shadow-md hover:shadow-xl transition-all bg-white/70 backdrop-blur">
               <div className="aspect-video relative overflow-hidden group">
-                <img
+                <Image
                   src={article.image || "/placeholder.svg"}
                   alt={article.title}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 <div className="absolute top-4 left-4">
                   <Badge

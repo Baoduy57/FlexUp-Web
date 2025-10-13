@@ -27,9 +27,9 @@ import {
   ThumbsUp,
   Share2,
   Bookmark,
-  X,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 interface Video {
   id: string;
@@ -303,10 +303,11 @@ export function VideoLibrary() {
                   setIsVideoModalOpen(true);
                 }}
               >
-                <img
+                <Image
                   src={video.thumbnail || "/placeholder.svg"}
                   alt={video.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
                 />
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
                 <div className="absolute inset-0 flex items-center justify-center">

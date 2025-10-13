@@ -251,7 +251,7 @@ export default function LandingPage() {
                       ))}
                     </div>
                     <p className="text-muted-foreground mb-4 italic">
-                      "{testimonial.text}"
+                      &ldquo;{testimonial.text}&rdquo;
                     </p>
                     <div className="flex items-center">
                       <div
