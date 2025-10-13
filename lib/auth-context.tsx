@@ -412,8 +412,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     if (!response.ok) {
-      const errorMessage = await response.text();
-      throw new Error(errorMessage || "Đăng nhập thất bại");
+      let errorMessage = "Đăng nhập thất bại";
+
+      try {
+        const contentType = response.headers.get("content-type") ?? "";
+        if (contentType.includes("application/json")) {
+          const payload = await response.json();
+          errorMessage =
+            payload?.message ||
+            payload?.error ||
+            payload?.errors?.join?.(", ") ||
+            errorMessage;
+        } else {
+          const text = await response.text();
+          if (text) errorMessage = text;
+        }
+      } catch {
+        // ignore parsing issues, fallback message will be used
+      }
+
+      if (response.status === 401) {
+        errorMessage =
+          "Email hoặc mật khẩu không đúng. Vui lòng kiểm tra lại thông tin và thử lại.";
+      }
+
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
