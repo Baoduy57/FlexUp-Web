@@ -1,17 +1,21 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { GeistSans } from "geist/font/sans";
-import { GeistMono } from "geist/font/mono";
+import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Suspense } from "react";
 import { AuthProvider } from "@/lib/auth-context";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
+const inter = Inter({
+  subsets: ["latin", "vietnamese"],
+  variable: "--font-sans",
+});
+
 export const metadata: Metadata = {
-  title: "FlexUp - Your Personal Fitness Journey",
+  title: "FlexUp - Hành trình Fitness của riêng bạn",
   description:
-    "Track workouts, monitor nutrition, and achieve your fitness goals with our comprehensive fitness platform",
+    "Theo dõi bài tập, giám sát dinh dưỡng, và đạt được mục tiêu fitness của bạn với nền tảng toàn diện của chúng tôi.",
   generator: "web fitness",
 };
 
@@ -21,8 +25,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
+    <html lang="vi">
+      <body className={`${inter.variable} font-sans overflow-x-hidden`}>
         <AuthProvider>
           <Suspense fallback={null}>{children}</Suspense>
           <Toaster />
