@@ -1,7 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import {
+  Award,
+  Calendar,
+  Loader2,
+  Target,
+  Trophy,
+  Users,
+  Zap,
+} from "lucide-react";
+
+import {
+  getChallenges,
+  joinChallenge,
+  leaveChallenge,
+  type ChallengeCategory,
+  type CommunityChallenge,
+  type ChallengeStatus,
+} from "@/lib/community-api";
+import { useToast } from "@/hooks/use-toast";
 import {
   Card,
   CardContent,
@@ -11,189 +30,53 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Trophy,
-  Users,
-  Calendar,
-  Target,
-  Zap,
-  Award,
-  Clock,
-} from "lucide-react";
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-interface Challenge {
-  id: string;
-  title: string;
-  description: string;
-  type: "individual" | "group";
-  category: "workout" | "nutrition" | "consistency";
-  duration: string;
-  participants: number;
-  maxParticipants?: number;
-  progress: number;
-  target: number;
-  unit: string;
-  reward: string;
-  status: "active" | "completed" | "upcoming";
-  endDate: string;
-  isJoined: boolean;
-  topParticipants?: Array<{
-    name: string;
-    avatar: string;
-    progress: number;
-  }>;
+const CATEGORY_LABEL: Record<ChallengeCategory, string> = {
+  workout: "Tập luyện",
+  nutrition: "Dinh dưỡng",
+  consistency: "Kỷ luật",
+};
+
+const CATEGORY_BADGE_STYLE: Record<ChallengeCategory, string> = {
+  workout: "bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 text-emerald-700",
+  nutrition: "bg-gradient-to-r from-blue-500/20 to-indigo-500/20 text-blue-700",
+  consistency: "bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-700",
+};
+
+const STATUS_LABEL: Record<ChallengeStatus, string> = {
+  active: "Đang diễn ra",
+  upcoming: "Sắp diễn ra",
+  completed: "Đã kết thúc",
+};
+
+function normalizeRewardPoints(reward: string): number {
+  const match = reward.match(/(\d[\d\.]*)/);
+  if (!match) {
+    return 0;
+  }
+  return parseInt(match[1].replace(/\D/g, ""), 10) || 0;
 }
 
-const challenges: Challenge[] = [
-  {
-    id: "1",
-    title: "30 Ngày Squat Challenge",
-    description: "Thực hiện squat mỗi ngày trong 30 ngày, tăng dần số lượng",
-    type: "group",
-    category: "workout",
-    duration: "30 ngày",
-    participants: 156,
-    maxParticipants: 200,
-    progress: 450,
-    target: 1500,
-    unit: "squats",
-    reward: "Huy hiệu Squat Master + 500 điểm",
-    status: "active",
-    endDate: "2024-02-15",
-    isJoined: true,
-    topParticipants: [
-      { name: "Hoàng Nam", avatar: "/user-avatar.jpg", progress: 520 },
-      { name: "Minh Anh", avatar: "/user-avatar.jpg", progress: 480 },
-      { name: "Thu Hà", avatar: "/user-avatar.jpg", progress: 465 },
-    ],
-  },
-  {
-    id: "2",
-    title: "Tuần Lễ Cardio Cháy Mỡ",
-    description: "Đốt cháy 3000 calories trong 7 ngày qua các bài tập cardio",
-    type: "individual",
-    category: "workout",
-    duration: "7 ngày",
-    participants: 89,
-    progress: 1850,
-    target: 3000,
-    unit: "calories",
-    reward: "Huy hiệu Cardio King + 300 điểm",
-    status: "active",
-    endDate: "2024-01-25",
-    isJoined: false,
-  },
-  {
-    id: "3",
-    title: "21 Ngày Ăn Sạch",
-    description: "Duy trì chế độ ăn healthy trong 21 ngày liên tiếp",
-    type: "group",
-    category: "nutrition",
-    duration: "21 ngày",
-    participants: 234,
-    maxParticipants: 300,
-    progress: 12,
-    target: 21,
-    unit: "ngày",
-    reward: "Huy hiệu Nutrition Expert + 400 điểm",
-    status: "active",
-    endDate: "2024-02-05",
-    isJoined: true,
-    topParticipants: [
-      { name: "Lan Anh", avatar: "/user-avatar.jpg", progress: 15 },
-      { name: "Đức Anh", avatar: "/user-avatar.jpg", progress: 14 },
-      { name: "Mai Linh", avatar: "/user-avatar.jpg", progress: 13 },
-    ],
-  },
-  {
-    id: "4",
-    title: "Tháng Không Bỏ Lỡ",
-    description: "Tập luyện ít nhất 20 ngày trong tháng",
-    type: "individual",
-    category: "consistency",
-    duration: "30 ngày",
-    participants: 67,
-    progress: 18,
-    target: 20,
-    unit: "ngày",
-    reward: "Huy hiệu Consistency Champion + 600 điểm",
-    status: "active",
-    endDate: "2024-01-31",
-    isJoined: true,
-  },
-  {
-    id: "5",
-    title: "Push-up Marathon",
-    description: "Thực hiện 1000 push-ups trong 2 tuần",
-    type: "group",
-    category: "workout",
-    duration: "14 ngày",
-    participants: 0,
-    maxParticipants: 150,
-    progress: 0,
-    target: 1000,
-    unit: "push-ups",
-    reward: "Huy hiệu Push-up Pro + 450 điểm",
-    status: "upcoming",
-    endDate: "2024-02-10",
-    isJoined: false,
-  },
-];
+interface ChallengeCardProps {
+  challenge: CommunityChallenge;
+  onToggleJoin: (challenge: CommunityChallenge) => Promise<void>;
+  isProcessing: boolean;
+}
 
-export function Challenges() {
-  const [challengeList, setChallengeList] = useState(challenges);
+function ChallengeCard({ challenge, onToggleJoin, isProcessing }: ChallengeCardProps) {
+  const progressPercent =
+    challenge.target > 0
+      ? Math.min(100, Math.round((challenge.progress / challenge.target) * 100))
+      : 0;
 
-  const handleJoinChallenge = (challengeId: string) => {
-    setChallengeList(
-      challengeList.map((challenge) =>
-        challenge.id === challengeId
-          ? {
-              ...challenge,
-              isJoined: !challenge.isJoined,
-              participants: challenge.isJoined
-                ? challenge.participants - 1
-                : challenge.participants + 1,
-            }
-          : challenge
-      )
-    );
-  };
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case "workout":
-        return "bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 text-emerald-700";
-      case "nutrition":
-        return "bg-gradient-to-r from-blue-500/20 to-indigo-500/20 text-blue-700";
-      case "consistency":
-        return "bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-700";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "active":
-        return "Đang diễn ra";
-      case "completed":
-        return "Đã kết thúc";
-      case "upcoming":
-        return "Sắp diễn ra";
-      default:
-        return "Không xác định";
-    }
-  };
-
-  const activeChallenge = challengeList.filter((c) => c.status === "active");
-  const upcomingChallenges = challengeList.filter(
-    (c) => c.status === "upcoming"
-  );
-  const myChallenge = challengeList.filter((c) => c.isJoined);
-
-  const ChallengeCard = ({ challenge }: { challenge: Challenge }) => (
+  return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -205,40 +88,31 @@ export function Challenges() {
           <div className="flex items-start justify-between">
             <div className="space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
-                <CardTitle className="text-lg font-semibold">
-                  {challenge.title}
-                </CardTitle>
-                <Badge className={getCategoryColor(challenge.category)}>
-                  {challenge.category === "workout" && (
-                    <Zap className="h-3 w-3 mr-1" />
-                  )}
-                  {challenge.category === "nutrition" && (
-                    <Target className="h-3 w-3 mr-1" />
-                  )}
-                  {challenge.category === "consistency" && (
-                    <Calendar className="h-3 w-3 mr-1" />
-                  )}
-                  {challenge.category}
+                <CardTitle className="text-lg font-semibold">{challenge.title}</CardTitle>
+                <Badge className={CATEGORY_BADGE_STYLE[challenge.category]}>
+                  {challenge.category === "workout" && <Zap className="h-3 w-3 mr-1" />}
+                  {challenge.category === "nutrition" && <Target className="h-3 w-3 mr-1" />}
+                  {challenge.category === "consistency" && <Calendar className="h-3 w-3 mr-1" />}
+                  {CATEGORY_LABEL[challenge.category]}
                 </Badge>
-                <Badge variant="outline">
-                  {getStatusLabel(challenge.status)}
-                </Badge>
+                <Badge variant="outline">{STATUS_LABEL[challenge.status]}</Badge>
               </div>
               <CardDescription>{challenge.description}</CardDescription>
             </div>
             <div className="text-right text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" /> {challenge.duration}
+                <Calendar className="h-4 w-4" />
+                {challenge.duration}
               </div>
               <div className="flex items-center gap-1 mt-1">
-                <Users className="h-4 w-4" /> {challenge.participants}
-                {challenge.maxParticipants && `/${challenge.maxParticipants}`}
+                <Users className="h-4 w-4" />
+                {challenge.participants}
+                {challenge.maxParticipants ? `/${challenge.maxParticipants}` : ""}
               </div>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Progress */}
           <div>
             <div className="flex justify-between text-sm mb-1">
               <span>Tiến độ</span>
@@ -248,36 +122,32 @@ export function Challenges() {
             </div>
             <motion.div
               initial={{ width: 0 }}
-              animate={{
-                width: `${(challenge.progress / challenge.target) * 100}%`,
-              }}
+              animate={{ width: `${progressPercent}%` }}
               transition={{ duration: 1 }}
               className="h-2 rounded-full bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 shadow-inner"
             />
           </div>
 
-          {challenge.topParticipants && (
+          {challenge.topParticipants.length > 0 ? (
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Top người tham gia</h4>
-              <div className="flex gap-4">
-                {challenge.topParticipants.slice(0, 3).map((p, index) => (
-                  <div key={index} className="flex items-center gap-2 text-xs">
+              <div className="flex gap-4 flex-wrap">
+                {challenge.topParticipants.map((participant, index) => (
+                  <div key={`${participant.user.userId}-${index}`} className="flex items-center gap-2 text-xs">
                     <Avatar className="h-6 w-6 border border-white/30">
                       <AvatarImage
-                        src={p.avatar || "/placeholder.svg"}
-                        alt={p.name}
+                        src={participant.user.avatarUrl ?? "/user-avatar.jpg"}
+                        alt={participant.user.displayName}
                       />
-                      <AvatarFallback>{p.name.charAt(0)}</AvatarFallback>
+                      <AvatarFallback>{participant.user.displayName.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <span>{p.name}</span>
-                    <span className="text-muted-foreground">
-                      ({p.progress})
-                    </span>
+                    <span>{participant.user.displayName}</span>
+                    <span className="text-muted-foreground">({participant.progressValue})</span>
                   </div>
                 ))}
               </div>
             </div>
-          )}
+          ) : null}
 
           <div className="flex items-center justify-between pt-4 border-t border-white/10">
             <span className="text-sm">
@@ -285,21 +155,104 @@ export function Challenges() {
               <span className="text-muted-foreground">{challenge.reward}</span>
             </span>
             <Button
-              onClick={() => handleJoinChallenge(challenge.id)}
+              onClick={() => onToggleJoin(challenge)}
               variant={challenge.isJoined ? "outline" : "default"}
               className="shadow-md"
+              disabled={challenge.status !== "active" || isProcessing}
             >
-              {challenge.isJoined ? "Rời khỏi" : "Tham gia"}
+              {isProcessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Đang xử lý
+                </>
+              ) : challenge.isJoined ? (
+                "Rời khỏi"
+              ) : (
+                "Tham gia"
+              )}
             </Button>
           </div>
         </CardContent>
       </Card>
     </motion.div>
   );
+}
+
+export function Challenges() {
+  const { toast } = useToast();
+  const [challenges, setChallenges] = useState<CommunityChallenge[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<number | null>(null);
+
+  const loadChallenges = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await getChallenges();
+      setChallenges(data);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Không thể tải thử thách",
+        description: "Vui lòng thử lại sau.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    void loadChallenges();
+  }, [loadChallenges]);
+
+  const handleToggleJoin = async (challenge: CommunityChallenge) => {
+    try {
+      setProcessingId(challenge.id);
+      if (challenge.isJoined) {
+        await leaveChallenge(challenge.id);
+        toast({
+          title: "Đã rời khỏi thử thách",
+          description: challenge.title,
+        });
+      } else {
+        const updated = await joinChallenge(challenge.id);
+        toast({
+          title: "Tham gia thử thách thành công",
+          description: updated.title,
+        });
+      }
+      await loadChallenges();
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Không thể cập nhật thử thách",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const activeChallenges = useMemo(
+    () => challenges.filter((challenge) => challenge.status === "active"),
+    [challenges]
+  );
+  const myChallenges = useMemo(
+    () => challenges.filter((challenge) => challenge.isJoined),
+    [challenges]
+  );
+  const upcomingChallenges = useMemo(
+    () => challenges.filter((challenge) => challenge.status === "upcoming"),
+    [challenges]
+  );
+
+  const joinedActiveCount = activeChallenges.filter((challenge) => challenge.isJoined).length;
+  const completedCount = challenges.filter((challenge) => challenge.status === "completed" && challenge.isJoined).length;
+  const potentialRewards = myChallenges.reduce((sum, challenge) => sum + normalizeRewardPoints(challenge.reward), 0);
 
   return (
     <div className="space-y-8">
-      {/* Stats */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -308,40 +261,35 @@ export function Challenges() {
       >
         <Card className="bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 backdrop-blur-md border-white/20">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Thử thách đang tham gia
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Thử thách đang tham gia</CardTitle>
             <Trophy className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{myChallenge.length}</div>
+            <div className="text-2xl font-bold">{joinedActiveCount}</div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-md border-white/20">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Thử thách hoàn thành
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Thử thách hoàn thành</CardTitle>
             <Award className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
+            <div className="text-2xl font-bold">{completedCount}</div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 backdrop-blur-md border-white/20">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Điểm thưởng</CardTitle>
+            <CardTitle className="text-sm font-medium">Điểm thưởng tiềm năng</CardTitle>
             <Target className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">2,400</div>
+            <div className="text-2xl font-bold">{potentialRewards.toLocaleString()} điểm</div>
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* Tabs */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -371,25 +319,75 @@ export function Challenges() {
           </TabsList>
 
           <TabsContent value="active" className="space-y-4 pt-4">
-            {activeChallenge.map((c) => (
-              <ChallengeCard key={c.id} challenge={c} />
-            ))}
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : activeChallenges.length === 0 ? (
+              <Card className="border-dashed border-2 border-white/30 bg-white/40">
+                <CardContent className="py-10 text-center space-y-2">
+                  <CardTitle className="text-lg">Chưa có thử thách nào đang hoạt động</CardTitle>
+                  <CardDescription>Các thử thách mới sẽ được cập nhật sớm.</CardDescription>
+                </CardContent>
+              </Card>
+            ) : (
+              activeChallenges.map((challenge) => (
+                <ChallengeCard
+                  key={challenge.id}
+                  challenge={challenge}
+                  onToggleJoin={handleToggleJoin}
+                  isProcessing={processingId === challenge.id}
+                />
+              ))
+            )}
           </TabsContent>
 
           <TabsContent value="my-challenges" className="space-y-4 pt-4">
-            {myChallenge.length > 0 ? (
-              myChallenge.map((c) => <ChallengeCard key={c.id} challenge={c} />)
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : myChallenges.length === 0 ? (
+              <Card className="border-dashed border-2 border-white/30 bg-white/40">
+                <CardContent className="py-10 text-center space-y-2">
+                  <CardTitle className="text-lg">Bạn chưa tham gia thử thách nào</CardTitle>
+                  <CardDescription>Khám phá và tham gia thử thách để nhận quà tặng hấp dẫn.</CardDescription>
+                </CardContent>
+              </Card>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                Bạn chưa tham gia thử thách nào
-              </p>
+              myChallenges.map((challenge) => (
+                <ChallengeCard
+                  key={challenge.id}
+                  challenge={challenge}
+                  onToggleJoin={handleToggleJoin}
+                  isProcessing={processingId === challenge.id}
+                />
+              ))
             )}
           </TabsContent>
 
           <TabsContent value="upcoming" className="space-y-4 pt-4">
-            {upcomingChallenges.map((c) => (
-              <ChallengeCard key={c.id} challenge={c} />
-            ))}
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : upcomingChallenges.length === 0 ? (
+              <Card className="border-dashed border-2 border-white/30 bg-white/40">
+                <CardContent className="py-10 text-center space-y-2">
+                  <CardTitle className="text-lg">Không có thử thách sắp diễn ra</CardTitle>
+                  <CardDescription>Hãy quay lại sau để xem các thử thách mới.</CardDescription>
+                </CardContent>
+              </Card>
+            ) : (
+              upcomingChallenges.map((challenge) => (
+                <ChallengeCard
+                  key={challenge.id}
+                  challenge={challenge}
+                  onToggleJoin={handleToggleJoin}
+                  isProcessing={processingId === challenge.id}
+                />
+              ))
+            )}
           </TabsContent>
         </Tabs>
       </motion.div>

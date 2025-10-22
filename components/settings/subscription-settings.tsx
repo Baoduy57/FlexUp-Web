@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Sparkles, Zap } from "lucide-react";
+import { Check, Crown, ExternalLink, Loader2, Sparkles, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import { API_BASE_URL } from "@/lib/config";
 import { useAuth } from "@/lib/auth-context";
@@ -31,6 +31,8 @@ export function SubscriptionSettings() {
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [pendingPayment, setPendingPayment] = useState<{ orderCode: string; status: string; message: string } | null>(null);
+  const [isCheckingPayment, setIsCheckingPayment] = useState(false);
   const { accessToken } = useAuth();
   const { toast } = useToast();
 
@@ -69,12 +71,96 @@ export function SubscriptionSettings() {
     }
   }, [accessToken]);
 
+  const checkPendingPayment = useCallback(async (orderCode: string, forceRefresh = false) => {
+    if (!accessToken) return;
+
+    setIsCheckingPayment(true);
+    try {
+      const refreshParam = forceRefresh ? "true" : "false";
+      const response = await fetch(`${API_BASE_URL}/api/Subscription/payment-status/${orderCode}?refresh=${refreshParam}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404 && typeof window !== "undefined") {
+          localStorage.removeItem("flexup_pending_order");
+        }
+        throw new Error("Unable to check payment status");
+      }
+
+      const result = await response.json();
+      const data = result?.data;
+
+      if (!data) {
+        return;
+      }
+
+      if (data.status === "PAID") {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("flexup_pending_order");
+        }
+        setPendingPayment(null);
+        toast({
+          title: "Thanh toán thành công! 🎉",
+          description: "Gói Premium sẽ được kích hoạt ngay.",
+        });
+        await fetchSubscription();
+        return;
+      }
+
+      if (data.status === "PENDING") {
+        setPendingPayment({
+          orderCode,
+          status: data.status,
+          message: data.message ?? "Thanh toán đang được xử lý. Vui lòng chờ trong giây lát.",
+        });
+        return;
+      }
+
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("flexup_pending_order");
+      }
+      setPendingPayment(null);
+      toast({
+        title: "Thanh toán chưa hoàn tất",
+        description: data.message ?? "Có vẻ giao dịch chưa được thực hiện.",
+        variant: "destructive",
+      });
+    } catch (error) {
+      console.error("Failed to check payment status:", error);
+      toast({
+        title: "Không thể kiểm tra thanh toán",
+        description: "Vui lòng thử lại sau.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCheckingPayment(false);
+    }
+  }, [accessToken, fetchSubscription, toast]);
+
   useEffect(() => {
     void fetchSubscription();
   }, [fetchSubscription]);
 
+  useEffect(() => {
+    if (!accessToken || typeof window === "undefined") return;
+    const storedOrder = localStorage.getItem("flexup_pending_order");
+    if (!storedOrder) return;
+
+    void checkPendingPayment(storedOrder);
+  }, [accessToken, checkPendingPayment]);
+
   const handleUpgrade = async () => {
-    if (!accessToken) return;
+    if (!accessToken) {
+      toast({
+        title: "Yêu cầu đăng nhập",
+        description: "Vui lòng đăng nhập lại để tiếp tục nâng cấp.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsUpgrading(true);
     try {
@@ -85,28 +171,59 @@ export function SubscriptionSettings() {
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          paymentMethod: "manual",
-          amount: 50000,
-          durationMonths: 1,
+          subscriptionType: "premium",
+          paymentMethod: "PayOS",
+          autoRenew: true,
         }),
       });
 
-      if (response.ok) {
-        const result = await response.json();
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.message ?? "Không thể tạo liên kết thanh toán.");
+      }
+
+      const paymentData = result?.data;
+      const orderCode = paymentData?.orderCode ? String(paymentData.orderCode) : null;
+
+      if (orderCode) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("flexup_pending_order", orderCode);
+        }
+        setPendingPayment({
+          orderCode,
+          status: paymentData?.paymentStatus ?? "PENDING",
+          message: "Liên kết PayOS đã sẵn sàng. Vui lòng hoàn tất thanh toán.",
+        });
+      }
+
+      if (paymentData?.paymentUrl) {
         toast({
-          title: "Nâng cấp thành công! 🎉",
-          description: result.message,
+          title: "Chuyển đến PayOS",
+          description: "Bạn sẽ được chuyển tới PayOS để hoàn tất thanh toán.",
         });
         setShowPaymentDialog(false);
-        await fetchSubscription();
-      } else {
-        throw new Error("Upgrade failed");
+        if (typeof window !== "undefined") {
+          window.location.href = paymentData.paymentUrl;
+        }
+        return;
       }
+
+      toast({
+        title: "Nâng cấp thành công! 🎉",
+        description: result?.message ?? "Gói Premium đã được kích hoạt.",
+      });
+      setPendingPayment(null);
+      setShowPaymentDialog(false);
+      await fetchSubscription();
     } catch (error) {
       console.error("Failed to upgrade subscription:", error);
       toast({
         title: "Lỗi nâng cấp",
-        description: "Không thể nâng cấp lên Premium. Vui lòng thử lại.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Không thể nâng cấp lên Premium. Vui lòng thử lại.",
         variant: "destructive",
       });
     } finally {
@@ -115,9 +232,60 @@ export function SubscriptionSettings() {
   };
 
   const isPremium = subscription?.currentPlan === "premium";
+  const isPaymentPending = Boolean(pendingPayment);
 
   return (
     <div className="space-y-8">
+      {pendingPayment && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+        >
+          <Card className="border border-blue-200 bg-blue-50/80 shadow-sm">
+            <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">
+                  Đang chờ thanh toán
+                </p>
+                <p className="text-sm text-blue-800">
+                  Mã đơn:{" "}
+                  <span className="font-mono font-semibold">{pendingPayment.orderCode}</span>.{" "}
+                  {pendingPayment.message}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void checkPendingPayment(pendingPayment.orderCode, true)}
+                  disabled={isCheckingPayment}
+                >
+                  {isCheckingPayment && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isCheckingPayment ? "Đang kiểm tra..." : "Kiểm tra lại"}
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600"
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      window.open(
+                        `/payments/payos/success?orderCode=${pendingPayment.orderCode}`,
+                        "_blank",
+                        "noopener,noreferrer"
+                      );
+                    }
+                  }}
+                >
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Hướng dẫn thanh toán
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
       {/* Current Status */}
       {subscription && (
         <motion.div
@@ -203,9 +371,9 @@ export function SubscriptionSettings() {
               <CardDescription>Mở khóa toàn bộ tính năng</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <div className="text-3xl font-bold">50,000 ₫</div>
-                <p className="text-sm text-muted-foreground">/tháng</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold">50,000 ₫</span>
+                <span className="text-sm text-muted-foreground">/tháng</span>
               </div>
               <ul className="space-y-2">
                 {premiumFeatures.map((feature, index) => (
@@ -232,13 +400,25 @@ export function SubscriptionSettings() {
                   </Button>
                 </>
               ) : (
-                <Button
-                  className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 opacity-50 cursor-not-allowed"
-                  disabled
-                >
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Nâng cấp ngay (Đang phát triển)
-                </Button>
+                <>
+                  {isPaymentPending && (
+                    <p className="text-sm text-muted-foreground text-center">
+                      Hãy hoàn tất thanh toán PayOS cho mã đơn {pendingPayment?.orderCode}.
+                    </p>
+                  )}
+                  <Button
+                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+                    onClick={() => setShowPaymentDialog(true)}
+                    disabled={isUpgrading || isCheckingPayment}
+                  >
+                    {isUpgrading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="mr-2 h-4 w-4" />
+                    )}
+                    {isUpgrading ? "Đang tạo liên kết..." : "Nâng cấp ngay"}
+                  </Button>
+                </>
               )}
             </CardFooter>
           </Card>
@@ -254,7 +434,7 @@ export function SubscriptionSettings() {
               Nâng cấp lên Premium
             </DialogTitle>
             <DialogDescription>
-              Bạn sẽ được nâng cấp lên gói Premium với giá 50,000 ₫/tháng
+              Thanh toán an toàn qua PayOS. Sau khi xác nhận, bạn sẽ được chuyển đến PayOS để hoàn tất giao dịch.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -272,11 +452,11 @@ export function SubscriptionSettings() {
               </div>
             </div>
             <p className="text-sm text-muted-foreground">
-              Lưu ý: Đây là demo. Trong thực tế sẽ tích hợp các cổng thanh toán như MoMo, ZaloPay, VNPay.
+              Hoàn tất thanh toán trên PayOS để kích hoạt gói Premium. Sau khi thanh toán thành công, hệ thống sẽ tự động cập nhật trạng thái gói của bạn.
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
+            <Button variant="outline" onClick={() => setShowPaymentDialog(false)} disabled={isUpgrading}>
               Hủy
             </Button>
             <Button
@@ -284,7 +464,17 @@ export function SubscriptionSettings() {
               disabled={isUpgrading}
               className="bg-gradient-to-r from-blue-500 to-cyan-500"
             >
-              {isUpgrading ? "Đang xử lý..." : "Xác nhận nâng cấp"}
+              {isUpgrading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang tạo liên kết...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Thanh toán với PayOS
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

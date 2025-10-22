@@ -133,11 +133,11 @@ export function PremiumFeatureGate({
             <div className="flex flex-col gap-3">
               <Button
                 size="lg"
-                className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold opacity-50 cursor-not-allowed"
-                disabled
+                className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold"
+                onClick={() => router.push("/settings?tab=subscription")}
               >
                 <Crown className="mr-2 h-5 w-5" />
-                Nâng cấp lên Premium (Đang phát triển)
+                Nâng cấp lên Premium
               </Button>
               <Button
                 size="lg"
