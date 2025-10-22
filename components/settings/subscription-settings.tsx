@@ -18,8 +18,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+type SubscriptionPlan = "free" | "premium";
+type SubscriptionStatus = "Active" | "PendingPayment" | "Cancelled" | "Expired" | "Unknown";
+
 interface SubscriptionInfo {
-  currentPlan: string;
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
   subscriptionStartDate?: string;
   subscriptionEndDate?: string;
   isActive: boolean;
@@ -64,7 +68,38 @@ export function SubscriptionSettings() {
 
       if (response.ok) {
         const result = await response.json();
-        setSubscription(result.data);
+        const raw = result.data ?? {};
+
+        const plan = (raw.subscriptionType ?? raw.currentPlan ?? "free").toString().toLowerCase() as SubscriptionPlan;
+        const statusString = (raw.status ?? "Unknown").toString();
+        const status = ["Active", "PendingPayment", "Cancelled", "Expired"].includes(statusString)
+          ? (statusString as SubscriptionStatus)
+          : "Unknown";
+
+        const nextSubscription: SubscriptionInfo = {
+          plan,
+          status,
+          subscriptionStartDate: raw.startDate ?? raw.subscriptionStartDate,
+          subscriptionEndDate: raw.endDate ?? raw.subscriptionEndDate,
+          isActive: raw.isActive ?? status === "Active",
+          daysRemaining: raw.daysRemaining,
+          canAccessPremiumFeatures: plan === "premium" && status === "Active",
+        };
+
+        setSubscription(nextSubscription);
+
+        if (status === "PendingPayment" && raw.orderCode) {
+          setPendingPayment({
+            orderCode: raw.orderCode.toString(),
+            status: "PENDING",
+            message: "Thanh toán đang chờ PayOS xác nhận. Vui lòng kiểm tra lại sau ít phút.",
+          });
+        } else if (status !== "PendingPayment") {
+          setPendingPayment(null);
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("flexup_pending_order");
+          }
+        }
       }
     } catch (error) {
       console.error("Failed to fetch subscription:", error);
@@ -231,8 +266,30 @@ export function SubscriptionSettings() {
     }
   };
 
-  const isPremium = subscription?.currentPlan === "premium";
+  const isPremium = subscription?.plan === "premium";
+  const isPendingStatus = subscription?.status === "PendingPayment";
+  const showUpgradeDisabled = isPremium || isPendingStatus || isUpgrading || isCheckingPayment;
+  const planLabel = isPremium ? "Premium" : "Free";
+  const statusLabel = subscription ? (() => {
+    switch (subscription.status) {
+      case "Active":
+        return "Đang hoạt động";
+      case "PendingPayment":
+        return "Đang chờ thanh toán";
+      case "Cancelled":
+        return "Đã hủy";
+      case "Expired":
+        return "Đã hết hạn";
+      default:
+        return "Không xác định";
+    }
+  })() : "Chưa đăng ký";
   const isPaymentPending = Boolean(pendingPayment);
+  const showDaysRemaining =
+    isPremium &&
+    typeof subscription?.daysRemaining === "number" &&
+    subscription.daysRemaining >= 0 &&
+    subscription.daysRemaining < 36500;
 
   return (
     <div className="space-y-8">
@@ -291,25 +348,52 @@ export function SubscriptionSettings() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl p-6 text-white shadow-lg"
+          className={`rounded-2xl p-6 shadow-lg text-white ${isPremium ? "bg-gradient-to-r from-blue-500 to-cyan-500" : "bg-slate-800"}`}
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-2xl font-bold flex items-center gap-2">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
                 {isPremium ? <Crown className="h-6 w-6" /> : <Zap className="h-6 w-6" />}
-                Gói {isPremium ? "Premium" : "Free"}
-              </h3>
-              {isPremium && subscription.daysRemaining !== undefined && (
-                <p className="mt-2 text-white/90">
+                <h3 className="text-2xl font-bold">Gói {planLabel}</h3>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-white/90">
+                <span className="flex items-center gap-2">
+                  <Badge
+                    variant="secondary"
+                    className={
+                      subscription.status === "PendingPayment"
+                        ? "bg-yellow-400/90 text-slate-900 border-transparent"
+                        : "bg-white/20 text-white border-white/40"
+                    }
+                  >
+                    {statusLabel}
+                  </Badge>
+                  {subscription.canAccessPremiumFeatures ? "Quyền Premium đã mở khóa" : "Quyền Free"}
+                </span>
+                {subscription.subscriptionStartDate && (
+                  <span>
+                    Bắt đầu:{" "}
+                    {new Date(subscription.subscriptionStartDate).toLocaleDateString("vi-VN")}
+                  </span>
+                )}
+                {subscription.subscriptionEndDate && (
+                  <span>
+                    Hết hạn:{" "}
+                    {new Date(subscription.subscriptionEndDate).toLocaleDateString("vi-VN")}
+                  </span>
+                )}
+              </div>
+              {showDaysRemaining && (
+                <p className="text-sm text-white/90">
                   Còn lại: {subscription.daysRemaining} ngày
                 </p>
               )}
+              {isPendingStatus && (
+                <p className="text-sm text-yellow-200">
+                  Giao dịch đang được PayOS xác nhận. Bạn có thể kiểm tra lại hoặc xem hướng dẫn bên trên.
+                </p>
+              )}
             </div>
-            {isPremium && (
-              <Badge variant="secondary" className="bg-white/20 text-white border-white/40">
-                Đang hoạt động
-              </Badge>
-            )}
           </div>
         </motion.div>
       )}
@@ -401,15 +485,15 @@ export function SubscriptionSettings() {
                 </>
               ) : (
                 <>
-                  {isPaymentPending && (
+                  {(isPaymentPending || isPendingStatus) && (
                     <p className="text-sm text-muted-foreground text-center">
-                      Hãy hoàn tất thanh toán PayOS cho mã đơn {pendingPayment?.orderCode}.
+                      {pendingPayment?.message ?? "Đang chờ PayOS xác nhận thanh toán. Bạn sẽ được mở khóa Premium sau khi hoàn tất."}
                     </p>
                   )}
                   <Button
                     className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
                     onClick={() => setShowPaymentDialog(true)}
-                    disabled={isUpgrading || isCheckingPayment}
+                    disabled={showUpgradeDisabled}
                   >
                     {isUpgrading ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
