@@ -18,12 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Save, Palette, Globe, Zap } from "lucide-react";
+import { Save, Palette, Globe, Zap, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import { useAuth } from "@/lib/auth-context";
 
 export function AppPreferences() {
   const { toast } = useToast();
+  const { logout } = useAuth();
   const [settings, setSettings] = useState({
     theme: "system",
     language: "vi",
@@ -40,6 +42,23 @@ export function AppPreferences() {
       title: "Đã lưu thành công",
       description: "Tùy chọn ứng dụng đã được cập nhật.",
     });
+  };
+
+  const handleLogout = () => {
+    // show a quick toast then navigate via logout (which already redirects)
+    toast({
+      title: "Đang đăng xuất",
+      description: "Bạn sẽ được đưa đến trang chính.",
+    });
+
+    // small delay so the toast can be queued before navigation
+    setTimeout(() => {
+      try {
+        logout();
+      } catch (err) {
+        toast({ title: "Lỗi", description: "Đăng xuất thất bại." });
+      }
+    }, 300);
   };
 
   const sectionMotion = {
@@ -269,13 +288,23 @@ export function AppPreferences() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
         >
-          <Button
-            onClick={handleSave}
-            className="w-full md:w-auto bg-gradient-to-r from-blue-400 to-cyan-500 text-white shadow-lg"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Lưu tùy chọn
-          </Button>
+          <div className="flex flex-col md:flex-row gap-3">
+            <Button
+              onClick={handleSave}
+              className="w-full md:w-auto bg-gradient-to-r from-blue-400 to-cyan-500 text-white shadow-lg"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Lưu tùy chọn
+            </Button>
+
+            <Button
+              onClick={handleLogout}
+              className="w-full md:w-auto bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-lg"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Đăng xuất
+            </Button>
+          </div>
         </motion.div>
       </CardContent>
     </Card>
